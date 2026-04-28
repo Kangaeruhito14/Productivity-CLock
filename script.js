@@ -394,12 +394,20 @@ const elements = {
   selectedDateHours: document.getElementById("selectedDateHours"),
   selectedDateRating: document.getElementById("selectedDateRating"),
   selectedDatePoints: document.getElementById("selectedDatePoints"),
+  weekStripLabel: document.getElementById("weekStripLabel"),
+  weekStripDays: document.getElementById("weekStripDays"),
+  goalStreakCurrent: document.getElementById("goalStreakCurrent"),
+  goalStreakBest: document.getElementById("goalStreakBest"),
   reportMonth: document.getElementById("reportMonth"),
   monthHours: document.getElementById("monthHours"),
   monthPoints: document.getElementById("monthPoints"),
   monthPercent: document.getElementById("monthPercent"),
   monthProgress: document.getElementById("monthProgress"),
   monthNote: document.getElementById("monthNote"),
+  monthBestDay: document.getElementById("monthBestDay"),
+  monthGoalHitDays: document.getElementById("monthGoalHitDays"),
+  weekdayPatternRow: document.getElementById("weekdayPatternRow"),
+  monthTrendValue: document.getElementById("monthTrendValue"),
   streakValue: document.getElementById("streakValue"),
   pomoToggleBtn: document.getElementById("pomoToggleBtn"),
   pomoSection: document.getElementById("pomoSection"),
@@ -514,6 +522,10 @@ function formatShortDate(dateKey) {
   return new Date(y, m - 1, d).toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
+function currentGoalHours() {
+  return state.goal > 0 ? state.goal : 8;
+}
+
 function ratingForHours(h) {
   if (h < 2)  return { label: "Below average", className: "status-low" };
   if (h < 5)  return { label: "Ok",            className: "status-ok" };
@@ -586,7 +598,7 @@ function refreshStreak() {
 function refreshGoalBar() {
   if (!elements.goalFill || !elements.goalEditBtn) return;
   const ms  = getLiveDayMs(getLocalDateKey(new Date()));
-  const goal = state.goal > 0 ? state.goal : 8;
+  const goal = currentGoalHours();
   const pct = Math.min((hoursFromMs(ms) / goal) * 100, 100);
   elements.goalFill.style.width = `${pct.toFixed(1)}%`;
   elements.goalEditBtn.textContent = `${goal} hrs`;
@@ -856,6 +868,113 @@ function updateDayDetail() {
   elements.selectedDateRating.textContent = r.label;
   elements.selectedDateRating.className  = `detail-pill ${r.className}`;
   elements.selectedDatePoints.textContent = `${formatHours(ms)} pts`;
+}
+
+function calculateGoalStreaks(goalHours) {
+  const today = new Date();
+  let current = 0;
+  for (let i = 0; i < 366; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    if (hoursFromMs(getLiveDayMs(getLocalDateKey(d))) >= goalHours) current++;
+    else break;
+  }
+
+  const keys = Object.keys(state.data.days);
+  const todayKey = getLocalDateKey(today);
+  if (!keys.includes(todayKey)) keys.push(todayKey);
+  if (!keys.length) return { current, best: current };
+
+  keys.sort();
+  const start = new Date(`${keys[0]}T00:00:00`);
+  const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  let best = 0;
+  let run = 0;
+  for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const key = getLocalDateKey(d);
+    if (hoursFromMs(getLiveDayMs(key)) >= goalHours) {
+      run++;
+      if (run > best) best = run;
+    } else {
+      run = 0;
+    }
+  }
+
+  return { current, best: Math.max(best, current) };
+}
+
+function renderWeekStrip() {
+  if (!elements.weekStripDays || !elements.weekStripLabel) return;
+
+  const [y, m, d] = state.selectedDateKey.split("-").map(Number);
+  const selected = new Date(y, (m || 1) - 1, d || 1);
+  const anchor = Number.isNaN(selected.getTime()) ? new Date() : selected;
+  const start = new Date(anchor);
+  start.setDate(anchor.getDate() - anchor.getDay());
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+
+  elements.weekStripLabel.textContent =
+    `${start.toLocaleDateString([], { month: "short", day: "numeric" })} - ${end.toLocaleDateString([], { month: "short", day: "numeric" })}`;
+
+  const goal = currentGoalHours();
+  const todayKey = getLocalDateKey(new Date());
+  const days = [];
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    const key = getLocalDateKey(date);
+    days.push({
+      key,
+      dayLabel: date.toLocaleDateString([], { weekday: "narrow" }),
+      hours: hoursFromMs(getLiveDayMs(key)),
+      isToday: key === todayKey,
+    });
+  }
+
+  const scaleMax = Math.max(goal, ...days.map((x) => x.hours), 0.5);
+  elements.weekStripDays.innerHTML = "";
+
+  days.forEach((item) => {
+    const col = document.createElement("div");
+    col.className = `week-strip-day${item.isToday ? " is-today" : ""}`;
+
+    const dayLabel = document.createElement("span");
+    dayLabel.className = "ws-day-label";
+    dayLabel.textContent = item.dayLabel;
+
+    const bar = document.createElement("span");
+    bar.className = "ws-bar";
+    const fill = document.createElement("span");
+    fill.className = "ws-fill";
+    fill.style.height = `${Math.min((item.hours / scaleMax) * 100, 100).toFixed(1)}%`;
+    bar.appendChild(fill);
+
+    const hours = document.createElement("span");
+    hours.className = "ws-day-hours";
+    hours.textContent = `${item.hours.toFixed(1)}h`;
+
+    col.append(dayLabel, bar, hours);
+    elements.weekStripDays.appendChild(col);
+  });
+}
+
+function refreshCalendarInsights() {
+  const goal = currentGoalHours();
+  const streaks = calculateGoalStreaks(goal);
+
+  if (elements.goalStreakCurrent) {
+    elements.goalStreakCurrent.textContent = streaks.current === 1 ? "1 day" : `${streaks.current} days`;
+  }
+  if (elements.goalStreakBest) {
+    elements.goalStreakBest.textContent = streaks.best === 1 ? "1 day" : `${streaks.best} days`;
+  }
+
+  renderWeekStrip();
 }
 
 // ---- MONTHLY CHART ---------------------------------------------------------
@@ -1167,7 +1286,7 @@ function updateMonthlyReport() {
   const year = state.currentMonth.getFullYear(), mi = state.currentMonth.getMonth();
   const totalMs = getMonthTotalMs(year, mi), totalH = hoursFromMs(totalMs);
   const daysInMonth = new Date(year, mi + 1, 0).getDate();
-  const goal = state.goal > 0 ? state.goal : 8;
+  const goal = currentGoalHours();
   const targetH = goal * daysInMonth;
   const pct = targetH === 0 ? 0 : (totalH / targetH) * 100;
   elements.reportMonth.textContent   = state.currentMonth.toLocaleDateString([], { month: "short", year: "numeric" });
@@ -1176,12 +1295,103 @@ function updateMonthlyReport() {
   elements.monthPercent.textContent  = `${pct.toFixed(1)}%`;
   elements.monthProgress.style.width = `${Math.min(pct, 100).toFixed(1)}%`;
   elements.monthNote.textContent     = `${totalH.toFixed(2)} hrs out of ${targetH.toFixed(2)} goal hrs`;
+
+  if (elements.monthBestDay || elements.monthGoalHitDays || elements.weekdayPatternRow || elements.monthTrendValue) {
+    const days = [];
+    for (let day = 1; day <= daysInMonth; day++) {
+      const key = `${year}-${String(mi + 1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+      const date = new Date(year, mi, day);
+      days.push({ date, hours: hoursFromMs(getLiveDayMs(key)) });
+    }
+
+    const best = days.reduce((top, cur) => (cur.hours > top.hours ? cur : top), { date: null, hours: 0 });
+    if (elements.monthBestDay) {
+      elements.monthBestDay.textContent = best.hours > 0
+        ? `${best.date.toLocaleDateString([], { month: "short", day: "numeric" })} — ${best.hours.toFixed(2)} hrs`
+        : "No focused day yet";
+    }
+
+    const hitDays = days.filter((x) => x.hours >= goal).length;
+    if (elements.monthGoalHitDays) {
+      elements.monthGoalHitDays.textContent = `${hitDays} of ${daysInMonth} days`;
+    }
+
+    if (elements.weekdayPatternRow) {
+      const sums = Array(7).fill(0);
+      const counts = Array(7).fill(0);
+      days.forEach((x) => {
+        const wd = x.date.getDay();
+        sums[wd] += x.hours;
+        counts[wd] += 1;
+      });
+      const avgs = sums.map((sum, idx) => counts[idx] ? (sum / counts[idx]) : 0);
+      const scale = Math.max(...avgs, goal / 2, 0.5);
+      const labels = ["S", "M", "T", "W", "T", "F", "S"];
+
+      elements.weekdayPatternRow.innerHTML = "";
+      avgs.forEach((avg, idx) => {
+        const item = document.createElement("div");
+        item.className = "wp-item";
+
+        const label = document.createElement("span");
+        label.className = "wp-label";
+        label.textContent = labels[idx];
+
+        const bar = document.createElement("span");
+        bar.className = "wp-bar";
+        const fill = document.createElement("span");
+        fill.className = "wp-fill";
+        fill.style.height = `${Math.min((avg / scale) * 100, 100).toFixed(1)}%`;
+        bar.appendChild(fill);
+
+        const value = document.createElement("span");
+        value.className = "wp-avg";
+        value.textContent = `${avg.toFixed(1)}h`;
+
+        item.append(label, bar, value);
+        elements.weekdayPatternRow.appendChild(item);
+      });
+    }
+
+    if (elements.monthTrendValue) {
+      const prevDate = new Date(year, mi - 1, 1);
+      const py = prevDate.getFullYear();
+      const pmi = prevDate.getMonth();
+      const prevDaysInMonth = new Date(py, pmi + 1, 0).getDate();
+      const prevTotalH = hoursFromMs(getMonthTotalMs(py, pmi));
+
+      const prevPrefix = `${py}-${String(pmi + 1).padStart(2,"0")}`;
+      const hasPrevData = Object.keys(state.data.days).some((k) => k.startsWith(prevPrefix));
+      const currAvg = totalH / daysInMonth;
+      const prevAvg = prevTotalH / prevDaysInMonth;
+      const delta = currAvg - prevAvg;
+
+      elements.monthTrendValue.className = "mtr-value";
+      if (!hasPrevData) {
+        elements.monthTrendValue.textContent = "No data for last month";
+        elements.monthTrendValue.classList.add("mtr-flat");
+      } else if (Math.abs(delta) < 0.01) {
+        elements.monthTrendValue.textContent =
+          `No change vs ${prevDate.toLocaleDateString([], { month: "long" })}`;
+        elements.monthTrendValue.classList.add("mtr-flat");
+      } else if (delta > 0) {
+        elements.monthTrendValue.textContent =
+          `+${delta.toFixed(2)} hrs/day vs ${prevDate.toLocaleDateString([], { month: "long" })} ↑`;
+        elements.monthTrendValue.classList.add("mtr-up");
+      } else {
+        elements.monthTrendValue.textContent =
+          `${delta.toFixed(2)} hrs/day vs ${prevDate.toLocaleDateString([], { month: "long" })} ↓`;
+        elements.monthTrendValue.classList.add("mtr-down");
+      }
+    }
+  }
+
   renderMonthChart();
 }
 
 function refreshAll() {
   refreshTodaySummary(); renderCalendar(); updateDayDetail();
-  updateMonthlyReport(); refreshHistory(); refreshStreak(); refreshGoalBar();
+  updateMonthlyReport(); refreshHistory(); refreshStreak(); refreshGoalBar(); refreshCalendarInsights();
 }
 
 // ---- DAY-CHANGE HANDLING ---------------------------------------------------
@@ -1202,6 +1412,8 @@ function handleDayChange(now) {
 
 function tickProductivity() {
   handleDayChange(new Date()); updateSessionDisplay(); refreshTodaySummary(); refreshGoalBar(); refreshStreak();
+  if (state.selectedDateKey === getLocalDateKey(new Date())) updateDayDetail();
+  refreshCalendarInsights();
 }
 
 // ---- TIMER ACTIONS ---------------------------------------------------------
@@ -1272,7 +1484,7 @@ function clearToday() {
 function handleCalendarClick(e) {
   const t = e.target.closest(".calendar-day");
   if (!t || t.classList.contains("inactive") || !t.dataset.dateKey) return;
-  state.selectedDateKey = t.dataset.dateKey; renderCalendar(); updateDayDetail();
+  state.selectedDateKey = t.dataset.dateKey; renderCalendar(); updateDayDetail(); refreshCalendarInsights();
 }
 
 function changeMonth(offset) {
