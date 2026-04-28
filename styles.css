@@ -612,6 +612,117 @@ p {
   color: var(--green);
 }
 
+.calendar-insights {
+  display: grid;
+  gap: 12px;
+}
+
+.week-strip-block,
+.goal-streak-block {
+  background: var(--surface);
+  border: 1px solid var(--stroke);
+  border-radius: 16px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.insight-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.insight-kicker {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.insight-meta {
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.week-strip-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.week-strip-day {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ws-day-label {
+  font-size: 0.63rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+}
+
+.ws-bar {
+  width: 100%;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--stroke);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.ws-fill {
+  width: 100%;
+  height: 0%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--teal), var(--accent));
+  transition: height 0.3s ease;
+}
+
+.week-strip-day.is-today .ws-bar {
+  outline: 2px solid var(--teal);
+}
+
+.ws-day-hours {
+  font-size: 0.66rem;
+  color: var(--ink);
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.goal-streak-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.goal-streak-item {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.gss-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+
+.gss-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 5px;
+}
+
 /* ---- Monthly insight — rings + heatmap ---- */
 .month-chart-wrap {
   position: relative;
@@ -737,6 +848,122 @@ p {
   margin-top: 10px;
   font-size: 0.85rem;
 }
+
+.month-insights {
+  display: grid;
+  gap: 12px;
+}
+
+.month-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.month-highlight-item {
+  background: var(--surface);
+  border: 1px solid var(--stroke);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.mhi-label {
+  margin: 0 0 6px;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.mhi-value {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.weekday-pattern {
+  background: var(--surface);
+  border: 1px solid var(--stroke);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.weekday-pattern-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.wp-item {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.wp-label {
+  font-size: 0.62rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+}
+
+.wp-bar {
+  width: 100%;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--stroke);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.wp-fill {
+  width: 100%;
+  height: 0%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--accent), var(--gold));
+  transition: height 0.3s ease;
+}
+
+.wp-avg {
+  font-size: 0.65rem;
+  color: var(--ink);
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.month-trend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--stroke);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.mtr-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.mtr-value {
+  font-size: 0.88rem;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.mtr-up { color: var(--green); }
+.mtr-down { color: var(--accent-strong); }
+.mtr-flat { color: var(--teal); }
 
 .footer {
   text-align: center;
@@ -898,6 +1125,20 @@ p {
   .day-detail {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .month-highlight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .week-strip-days,
+  .weekday-pattern-row {
+    gap: 6px;
+  }
+
+  .ws-bar,
+  .wp-bar {
+    height: 36px;
   }
 }
 
