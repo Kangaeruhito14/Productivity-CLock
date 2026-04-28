@@ -174,6 +174,33 @@
             <span class="detail-pill ghost" id="selectedDatePoints">0.00 pts</span>
           </div>
         </div>
+
+        <div class="calendar-insights">
+          <div class="week-strip-block">
+            <div class="insight-head">
+              <p class="insight-kicker">Week Snapshot</p>
+              <p class="insight-meta" id="weekStripLabel">This week</p>
+            </div>
+            <div class="week-strip-days" id="weekStripDays"></div>
+          </div>
+
+          <div class="goal-streak-block">
+            <div class="insight-head">
+              <p class="insight-kicker">At Goal Streak</p>
+              <p class="insight-meta">Daily target consistency</p>
+            </div>
+            <div class="goal-streak-stats">
+              <div class="goal-streak-item">
+                <p class="gss-label">Current</p>
+                <p class="gss-value" id="goalStreakCurrent">0 days</p>
+              </div>
+              <div class="goal-streak-item">
+                <p class="gss-label">Best</p>
+                <p class="gss-value" id="goalStreakBest">0 days</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="card report-card">
@@ -221,6 +248,32 @@
             <div class="progress-bar" id="monthProgress"></div>
           </div>
           <p class="progress-note" id="monthNote">0.00 hrs out of 0 hrs available</p>
+        </div>
+
+        <div class="month-insights">
+          <div class="month-highlight-grid">
+            <div class="month-highlight-item">
+              <p class="mhi-label">Best day</p>
+              <p class="mhi-value" id="monthBestDay">No data yet</p>
+            </div>
+            <div class="month-highlight-item">
+              <p class="mhi-label">Goal-hit days</p>
+              <p class="mhi-value" id="monthGoalHitDays">0 of 0 days</p>
+            </div>
+          </div>
+
+          <div class="weekday-pattern">
+            <div class="insight-head">
+              <p class="insight-kicker">Weekday Pattern</p>
+              <p class="insight-meta">Average hours by weekday</p>
+            </div>
+            <div class="weekday-pattern-row" id="weekdayPatternRow"></div>
+          </div>
+
+          <div class="month-trend-row">
+            <p class="mtr-label">Vs last month</p>
+            <p class="mtr-value" id="monthTrendValue">--</p>
+          </div>
         </div>
       </section>
     </main>
