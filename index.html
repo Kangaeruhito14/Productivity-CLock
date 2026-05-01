@@ -328,6 +328,26 @@
       </div>
     </div>
 
+    <!-- Clear Today confirmation modal -->
+    <div class="modal-overlay" id="clearModal" hidden>
+      <div class="modal-card clear-modal-card">
+        <div class="clear-modal-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6"/>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+        </div>
+        <h3 class="modal-title">Clear today's record?</h3>
+        <p class="modal-hint">All focus time logged today will be permanently removed. This cannot be undone.</p>
+        <div class="modal-actions">
+          <button class="btn ghost" id="clearModalCancel">Cancel</button>
+          <button class="btn danger" id="clearModalOk">Yes, clear it</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Tour: backdrop, spotlight, and card are separate so z-index stacking works cleanly -->
     <div class="tour-backdrop" id="tourOverlay" hidden></div>
     <div class="tour-spotlight" id="tourSpotlight" hidden aria-hidden="true"></div>
@@ -343,6 +363,37 @@
         <button class="tour-btn" id="tourPrev" aria-label="Previous step">← Back</button>
         <span class="tour-dots" id="tourDots"></span>
         <button class="tour-btn tour-btn-primary" id="tourNext">Next →</button>
+      </div>
+    </div>
+    <!-- Focus Mode Overlay -->
+    <div class="focus-overlay" id="focusOverlay" role="dialog" aria-label="Focus timer" aria-hidden="true" hidden inert>
+      <!-- Active countdown view -->
+      <div class="focus-body" id="focusBody">
+        <div class="focus-ring-wrap">
+          <svg class="focus-ring-svg" viewBox="0 0 200 200" aria-hidden="true">
+            <circle class="fring-track" cx="100" cy="100" r="86"/>
+            <circle class="fring-fill" id="focusRingFill" cx="100" cy="100" r="86"/>
+          </svg>
+          <div class="focus-center">
+            <span class="focus-phase-lbl" id="focusPhaseLabel">FOCUS</span>
+            <div class="focus-countdown" id="focusCountdown">25:00</div>
+            <span class="focus-sub-lbl" id="focusSubLabel">Stay in the zone.</span>
+          </div>
+        </div>
+        <button class="focus-stop-btn" id="focusStopBtn">Stop session</button>
+      </div>
+      <!-- Round-complete prompt -->
+      <div class="focus-done-wrap" id="focusDoneWrap" hidden>
+        <div class="focus-done-card">
+          <p class="fdc-title">Round complete</p>
+          <p class="fdc-cycles" id="focusDoneCycles">1 cycle completed</p>
+          <p class="fdc-question">Try another Pomodoro?</p>
+          <div class="fdc-actions">
+            <button class="fdc-btn fdc-primary" id="focusSameBtn">Same time</button>
+            <button class="fdc-btn fdc-ghost"   id="focusNewBtn">Update time</button>
+            <button class="fdc-btn fdc-subtle"  id="focusQuitBtn">I'm done</button>
+          </div>
+        </div>
       </div>
     </div>
   </body>
