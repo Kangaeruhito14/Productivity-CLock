@@ -33,6 +33,10 @@ textarea,
   -webkit-user-select: text;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   font-family: "Space Grotesk", system-ui, sans-serif;
@@ -375,39 +379,90 @@ p {
 
 .btn {
   border: none;
-  padding: 10px 18px;
-  border-radius: 12px;
-  font-size: 0.95rem;
+  padding: 11px 20px;
+  border-radius: 14px;
+  font-size: 0.9rem;
   cursor: pointer;
   font-weight: 600;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  font-family: inherit;
+  letter-spacing: 0.1px;
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform   0.20s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow  0.20s ease,
+    filter      0.18s ease,
+    background  0.18s ease,
+    color       0.18s ease,
+    border-color 0.18s ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.96) !important;
+  filter: brightness(0.92) !important;
+  transition-duration: 0.08s;
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
   box-shadow: none;
+  filter: none;
 }
 
+/* ── Primary — Start Reading / Start Focus ── */
 .btn.primary {
-  background: var(--accent);
-  color: white;
-  box-shadow: 0 12px 24px var(--accent-bg);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: #fff;
+  padding: 12px 26px;
+  font-size: 0.95rem;
+  box-shadow:
+    0 6px 20px var(--accent-bg),
+    0 2px 6px rgba(0,0,0,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.20);
 }
-
 .btn.primary:hover:not(:disabled) {
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    0 12px 28px var(--accent-bg),
+    0 4px 10px rgba(0,0,0,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.22);
+  filter: brightness(1.06);
 }
 
+/* ── Ghost — Stop ── */
 .btn.ghost {
   background: var(--teal-bg);
   color: var(--teal);
+  border: 1.5px solid var(--teal);
+  padding: 10.5px 20px;
+}
+.btn.ghost:hover:not(:disabled) {
+  background: var(--teal);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px var(--teal-bg);
 }
 
+/* ── Subtle — Pomodoro (off) / Clear Today ── */
 .btn.subtle {
-  background: transparent;
+  background: var(--surface);
   color: var(--muted);
-  border: 1px dashed var(--stroke);
+  border: 1.5px solid var(--stroke);
+  padding: 10.5px 20px;
+}
+.btn.subtle:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+  transform: translateY(-1px);
+}
+
+/* Clear Today gets a subtle red warning on hover */
+#clearTodayBtn:hover:not(:disabled) {
+  border-color: rgba(210, 50, 50, 0.35);
+  color: rgba(200, 50, 50, 0.80);
+  background: rgba(210, 50, 50, 0.06);
 }
 
 .timer-summary {
@@ -1055,25 +1110,46 @@ p {
 @media (max-width: 900px) {
   .hero {
     padding-top: 48px;
+    gap: 24px;
+  }
+
+  .hero-copy {
+    max-width: 100%;
   }
 
   .clock-card {
     width: 100%;
+    flex: 1 1 100%;
   }
 }
 
 @media (max-width: 600px) {
   .hero {
-    padding: 40px 6vw 24px;
+    padding: 32px 4vw 20px;
+    gap: 20px;
+  }
+
+  .hero-copy {
+    padding: 20px 22px;
   }
 
   .clock-card {
-    padding: 22px;
+    padding: 22px 18px;
+    flex: 1 1 100%;
   }
 
   .analog-clock {
-    width: 200px;
-    height: 200px;
+    width: 190px;
+    height: 190px;
+  }
+
+  /* Re-anchor ticks for 190px clock: center at 95px, top at 8px → origin 87px */
+  .clock-face .tick {
+    transform-origin: center 87px;
+  }
+
+  .clock-face .tick.bold {
+    transform-origin: center 87px;
   }
 
   .timer-actions {
@@ -1250,9 +1326,59 @@ p {
 }
 
 .btn.pomo-active {
-  background: rgba(76, 149, 108, 0.15);
-  color: var(--green);
-  border: 1px solid rgba(76, 149, 108, 0.3);
+  background: linear-gradient(135deg, var(--green) 0%, var(--teal) 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 16px var(--green-bg), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.btn.pomo-active:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 22px var(--green-bg), inset 0 1px 0 rgba(255,255,255,0.18);
+  filter: brightness(1.06);
+}
+
+/* ── Danger — destructive confirm actions ── */
+.btn.danger {
+  background: linear-gradient(135deg, #e05555 0%, #c03a3a 100%);
+  color: #fff;
+  padding: 12px 24px;
+  box-shadow:
+    0 6px 20px rgba(210, 50, 50, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.btn.danger:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    0 10px 26px rgba(210, 50, 50, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.20);
+  filter: brightness(1.06);
+}
+
+/* Clear modal icon */
+.clear-modal-card {
+  text-align: center;
+}
+.clear-modal-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  background: rgba(210, 50, 50, 0.10);
+  border: 1px solid rgba(210, 50, 50, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+  color: #d94040;
+}
+.clear-modal-card .modal-title {
+  margin-bottom: 10px;
+}
+.clear-modal-card .modal-hint {
+  margin-bottom: 4px;
+}
+.clear-modal-card .modal-actions {
+  justify-content: center;
+  margin-top: 24px;
 }
 
 /* ---- goal bar ---- */
@@ -1941,9 +2067,6 @@ html[data-theme="dark"] .timer-value {
 /* ============================================================
    THEME: OCEAN — accent + surface overrides
    ============================================================ */
-html[data-theme="ocean"] .btn.primary {
-  box-shadow: 0 12px 24px rgba(0, 150, 199, 0.32);
-}
 html[data-theme="ocean"] .progress-bar {
   background: linear-gradient(90deg, #48cae4, #0096c7);
 }
@@ -1968,9 +2091,6 @@ html[data-theme="ocean"] .hero-copy {
 /* ============================================================
    THEME: FOREST — accent + surface overrides
    ============================================================ */
-html[data-theme="forest"] .btn.primary {
-  box-shadow: 0 12px 24px rgba(106, 153, 78, 0.32);
-}
 html[data-theme="forest"] .progress-bar {
   background: linear-gradient(90deg, #a7c957, #6a994e);
 }
@@ -1995,9 +2115,6 @@ html[data-theme="forest"] .hero-copy {
 /* ============================================================
    THEME: DUSK — accent + surface overrides
    ============================================================ */
-html[data-theme="dusk"] .btn.primary {
-  box-shadow: 0 12px 24px rgba(157, 78, 221, 0.32);
-}
 html[data-theme="dusk"] .progress-bar {
   background: linear-gradient(90deg, #ff99c8, #9d4edd);
 }
@@ -2035,4 +2152,195 @@ html[data-theme="dusk"] .hero-copy {
 }
 @media (max-width: 360px) {
   .theme-bar-label { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   FOCUS MODE OVERLAY
+   ═══════════════════════════════════════════════════════ */
+.focus-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 6, 16, 0.84);
+  backdrop-filter: blur(32px) saturate(0.4);
+  -webkit-backdrop-filter: blur(32px) saturate(0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.focus-overlay.is-open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Timer body */
+.focus-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48px;
+}
+
+/* Ring + center text */
+.focus-ring-wrap {
+  position: relative;
+  width: clamp(220px, 42vw, 340px);
+  height: clamp(220px, 42vw, 340px);
+}
+.focus-ring-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.fring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.07);
+  stroke-width: 5;
+}
+.fring-fill {
+  fill: none;
+  stroke: #ff7b54;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 540;
+  stroke-dashoffset: 0;
+  transform-origin: center;
+  transform: rotate(-90deg);
+  transition: stroke-dashoffset 0.9s linear, stroke 0.5s ease;
+}
+.focus-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.focus-phase-lbl {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
+  transition: color 0.4s ease;
+}
+.focus-phase-lbl.is-break { color: #39d0e0; }
+
+.focus-countdown {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: clamp(2.8rem, 9vw, 5.2rem);
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -1px;
+  line-height: 1;
+  margin: 0;
+  transition: color 0.4s ease;
+}
+.focus-countdown.is-break { color: #39d0e0; }
+
+.focus-sub-lbl {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.32);
+  letter-spacing: 0.5px;
+}
+
+/* Stop button */
+.focus-stop-btn {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.55);
+  padding: 11px 40px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.focus-stop-btn:hover {
+  background: rgba(255, 70, 70, 0.18);
+  color: #ff9090;
+  border-color: rgba(255, 70, 70, 0.32);
+}
+
+/* Done card */
+.focus-done-wrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.focus-done-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 28px;
+  padding: 44px 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+}
+.fdc-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+.fdc-cycles {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.38);
+  margin: 0;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.fdc-question {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.60);
+  margin: 10px 0 0;
+}
+.fdc-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.fdc-btn {
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.fdc-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+.fdc-btn:active { transform: scale(0.97); }
+.fdc-primary { background: var(--accent); color: #fff; }
+.fdc-ghost {
+  background: rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.fdc-subtle {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+@media (max-width: 480px) {
+  .focus-done-card { padding: 32px 24px; }
+  .fdc-actions { flex-direction: column; align-items: stretch; }
 }
