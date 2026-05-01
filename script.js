@@ -431,6 +431,7 @@ const state = {
 
 // Transient session label chosen at start (not persisted mid-session)
 let pendingSessionLabel = "";
+const bodyScrollLocks = new Set();
 
 // ---- PERSISTENCE -----------------------------------------------------------
 
@@ -524,6 +525,20 @@ function formatShortDate(dateKey) {
 
 function currentGoalHours() {
   return state.goal > 0 ? state.goal : 8;
+}
+
+function lockBodyScroll(source) {
+  if (!source) return;
+  bodyScrollLocks.add(source);
+  document.body.style.overflow = "hidden";
+}
+
+function unlockBodyScroll(source) {
+  if (!source) return;
+  bodyScrollLocks.delete(source);
+  if (bodyScrollLocks.size === 0) {
+    document.body.style.overflow = "";
+  }
 }
 
 function ratingForHours(h) {
@@ -718,10 +733,145 @@ function tickPomodoro() {
   const p = state.pomo;
   if (!p.enabled || !p.endTime) return;
   if (Date.now() >= p.endTime) {
-    if (p.phase === "focus") { p.cycles++; p.phase = "break"; p.endTime = Date.now() + pomoBreakMs(); playChime(true); }
-    else                     {             p.phase = "focus"; p.endTime = Date.now() + pomoFocusMs(); playChime(false); }
+    if (p.phase === "focus") {
+      p.cycles++;
+      playChime(true);
+      if (p.breakMin > 0) {
+        p.phase    = "break";
+        p.endTime  = Date.now() + pomoBreakMs();
+        focusTotalMs = pomoBreakMs();
+      } else {
+        p.endTime = null;
+        showFocusDonePrompt();
+      }
+    } else {
+      p.endTime = null;
+      showFocusDonePrompt();
+    }
   }
   updatePomoDisplay();
+  updateFocusOverlay();
+}
+
+// ─── Focus Mode Overlay ───────────────────────────────────────────────────────
+
+let focusTotalMs = 0;
+let focusHideTimer = null;
+
+function openFocusOverlay() {
+  const ov = document.getElementById("focusOverlay");
+  if (!ov) return;
+  if (focusHideTimer) { clearTimeout(focusHideTimer); focusHideTimer = null; }
+  document.getElementById("focusBody").hidden = false;
+  document.getElementById("focusDoneWrap").hidden = true;
+  focusTotalMs = pomoFocusMs();
+  ov.hidden = false;
+  ov.removeAttribute("inert");
+  ov.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(() => {
+    ov.classList.add("is-open");
+    updateFocusOverlay();
+  });
+  lockBodyScroll("focus");
+}
+
+function closeFocusOverlay() {
+  const ov = document.getElementById("focusOverlay");
+  if (!ov) return;
+  ov.classList.remove("is-open");
+  ov.setAttribute("aria-hidden", "true");
+  ov.setAttribute("inert", "");
+  if (focusHideTimer) clearTimeout(focusHideTimer);
+  focusHideTimer = setTimeout(() => {
+    ov.hidden = true;
+    focusHideTimer = null;
+  }, 560);
+  unlockBodyScroll("focus");
+}
+
+function focusOverlayIsOpen() {
+  const ov = document.getElementById("focusOverlay");
+  return !!ov && ov.classList.contains("is-open");
+}
+
+function updateFocusOverlay() {
+  if (!focusOverlayIsOpen()) return;
+  const p = state.pomo;
+  const isBreak = p.phase === "break";
+  const countdown  = document.getElementById("focusCountdown");
+  const phaseLabel = document.getElementById("focusPhaseLabel");
+  const subLabel   = document.getElementById("focusSubLabel");
+  const ringFill   = document.getElementById("focusRingFill");
+
+  if (p.endTime) {
+    const rem = Math.max(0, p.endTime - Date.now());
+    const m = Math.floor(rem / 60000);
+    const s = Math.floor((rem % 60000) / 1000);
+    if (countdown) countdown.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    if (ringFill && focusTotalMs > 0) {
+      const pct  = Math.min(1, rem / focusTotalMs);
+      const circ = 2 * Math.PI * 86;
+      ringFill.style.strokeDashoffset = String(circ * (1 - pct));
+    }
+  }
+
+  if (phaseLabel) {
+    phaseLabel.textContent = isBreak ? "BREAK" : "FOCUS";
+    phaseLabel.classList.toggle("is-break", isBreak);
+  }
+  if (countdown) countdown.classList.toggle("is-break", isBreak);
+  if (subLabel)  subLabel.textContent = isBreak ? "Rest your eyes. Breathe." : "Stay in the zone.";
+  if (ringFill) {
+    const cs = getComputedStyle(document.documentElement);
+    ringFill.style.stroke = isBreak
+      ? (cs.getPropertyValue("--teal").trim() || "#39d0e0")
+      : (cs.getPropertyValue("--accent").trim() || "#ff7b54");
+  }
+}
+
+function showFocusDonePrompt() {
+  const body     = document.getElementById("focusBody");
+  const done     = document.getElementById("focusDoneWrap");
+  const cyclesEl = document.getElementById("focusDoneCycles");
+  if (body) body.hidden = true;
+  if (done) done.hidden = false;
+  if (cyclesEl) {
+    const n = state.pomo.cycles;
+    cyclesEl.textContent = `${n} cycle${n !== 1 ? "s" : ""} completed`;
+  }
+}
+
+function initFocusOverlay() {
+  document.getElementById("focusStopBtn")?.addEventListener("click", () => {
+    closeFocusOverlay();
+    if (state.data.running.isRunning) stopTimer();
+    else { state.pomo.endTime = null; updatePomoDisplay(); }
+  });
+
+  document.getElementById("focusSameBtn")?.addEventListener("click", () => {
+    const p = state.pomo;
+    p.phase   = "focus";
+    p.endTime = Date.now() + pomoFocusMs();
+    focusTotalMs = pomoFocusMs();
+    document.getElementById("focusBody").hidden    = false;
+    document.getElementById("focusDoneWrap").hidden = true;
+    updateFocusOverlay();
+    updatePomoDisplay();
+    playChime(false);
+  });
+
+  document.getElementById("focusNewBtn")?.addEventListener("click", () => {
+    closeFocusOverlay();
+    if (state.data.running.isRunning) stopTimer();
+    else { state.pomo.endTime = null; updatePomoDisplay(); }
+    document.querySelector(".timer-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  document.getElementById("focusQuitBtn")?.addEventListener("click", () => {
+    closeFocusOverlay();
+    if (state.data.running.isRunning) stopTimer();
+    else { state.pomo.endTime = null; updatePomoDisplay(); }
+  });
 }
 
 function togglePomodoro() {
@@ -1123,7 +1273,7 @@ function renderMonthChart() {
 
   // Weekday header row
   ["S","M","T","W","T","F","S"].forEach((lbl, i) => {
-    ctx.fillStyle = isDark ? "rgba(255,255,255,0.30)" : "rgba(0,0,0,0.30)";
+    ctx.fillStyle = hexToRgba(muted, isDark ? 0.55 : 0.62);
     ctx.font = `600 ${Math.round(cw * 0.40)}px "Space Grotesk", sans-serif`;
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText(lbl, GX + i * (cw + GAP) + cw / 2, HDR / 2);
@@ -1176,8 +1326,10 @@ function renderMonthChart() {
     ctx.fillStyle = isToday
       ? (h > 0 ? "#fff" : hexToRgba(teal, 0.88))
       : h > 0
-        ? (intensity > 0.55 ? "rgba(255,255,255,0.90)" : hexToRgba(ink, 0.72))
-        : isDark ? "rgba(255,255,255,0.40)" : "rgba(0,0,0,0.40)";
+        ? (intensity > 0.55 ? "rgba(255,255,255,0.92)" : hexToRgba(ink, 0.84))
+        : isFuture
+          ? hexToRgba(muted, 0.38)
+          : hexToRgba(muted, 0.74);
     if (cw >= 18 && ch >= 16) ctx.fillText(String(d), cx2 + cw / 2, cy2 + ch / 2);
     ctx.textBaseline = "alphabetic";
   }
@@ -1443,7 +1595,13 @@ function doStartTimer(label) {
   const now = new Date();
   r.isRunning = true; r.sessionStart = r.activeStart = now.toISOString(); r.lastDateKey = getLocalDateKey(now);
   saveData();
-  if (state.pomo.enabled) { state.pomo.phase = "focus"; state.pomo.endTime = Date.now() + pomoFocusMs(); updatePomoDisplay(); }
+  if (state.pomo.enabled) {
+    state.pomo.phase = "focus";
+    state.pomo.endTime = Date.now() + pomoFocusMs();
+    focusTotalMs = pomoFocusMs();
+    updatePomoDisplay();
+    openFocusOverlay();
+  }
   updateSessionDisplay(); refreshAll();
 }
 
@@ -1472,13 +1630,31 @@ function stopTimer() {
   shimmerCard(document.querySelector(".timer-card"));
 }
 
-function clearToday() {
+function openClearModal() {
+  const modal = document.getElementById("clearModal");
+  if (!modal) return;
+  modal.hidden = false;
+  requestAnimationFrame(() => requestAnimationFrame(() => modal.classList.add("open")));
+}
+
+function closeClearModal() {
+  const modal = document.getElementById("clearModal");
+  if (!modal) return;
+  modal.classList.remove("open");
+  setTimeout(() => { modal.hidden = true; }, 350);
+}
+
+function doClearToday() {
   const key = getLocalDateKey(new Date()), r = state.data.running;
-  if (!confirm("Clear today's productivity total?")) return;
   state.data.days[key] = 0; state.goalCelebrated = false;
   if (state.data.labels) delete state.data.labels[key];
   if (r.isRunning && r.lastDateKey === key) r.activeStart = new Date().toISOString();
   saveData(); refreshAll();
+  closeClearModal();
+}
+
+function clearToday() {
+  openClearModal();
 }
 
 function handleCalendarClick(e) {
@@ -1618,9 +1794,9 @@ function initPomoSettings() {
 function initKeyboard() {
   document.addEventListener("keydown", (e) => {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-    if (e.code === "Space") { e.preventDefault(); state.data.running.isRunning ? stopTimer() : startTimer(); }
+    if (e.code === "Space") { if (focusOverlayIsOpen()) return; e.preventDefault(); state.data.running.isRunning ? stopTimer() : startTimer(); }
     else if (e.code === "Escape") {
-      closeSessionModal(); closeGoalModal(); closeTour();
+      closeSessionModal(); closeGoalModal(); closeClearModal(); closeTour();
     }
   });
 }
@@ -1728,7 +1904,7 @@ function initTour() {
   document.getElementById("tourSkip").addEventListener("click", closeTour);
 
   setTimeout(() => {
-    document.body.style.overflow = "hidden";
+    lockBodyScroll("tour");
     backdrop.hidden = false;
     card.hidden = false;
     tourStep = 0;
@@ -1769,7 +1945,7 @@ function closeTour() {
   const card = document.getElementById("tourCard");
   if (!backdrop || !backdrop.classList.contains("active")) return;
   localStorage.setItem(TOUR_KEY, "done");
-  document.body.style.overflow = "";
+  unlockBodyScroll("tour");
   backdrop.classList.remove("active", "spotlit");
   if (spotlight) { spotlight.classList.remove("visible"); }
   if (card) { card.classList.remove("active", "near-target"); }
@@ -1836,6 +2012,13 @@ function init() {
     if (e.target === e.currentTarget) closeGoalModal();
   });
 
+  // Clear Today modal
+  document.getElementById("clearModalOk")?.addEventListener("click", doClearToday);
+  document.getElementById("clearModalCancel")?.addEventListener("click", closeClearModal);
+  document.getElementById("clearModal")?.addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeClearModal();
+  });
+
   setInterval(tickProductivity, 1000);
   setInterval(tickPomodoro, 500);
 
@@ -1845,6 +2028,7 @@ function init() {
   initCanvas();
   initKeyboard();
   initPomoSettings();
+  initFocusOverlay();
   initMonthChart();
   initTour();
 }
