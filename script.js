@@ -118,16 +118,63 @@ function getCurrentTOD() {
   return "night";
 }
 
+const TOD_GRADIENTS = {
+  "late-night": "linear-gradient(180deg, #060412 0%, #0a0820 55%, #110630 100%)",
+  "sunrise":    "linear-gradient(180deg, #3d1a78 0%, #8b3a9b 18%, #e05f5f 42%, #f4a261 63%, #fdd17a 82%, #fff3b0 100%)",
+  "morning":    "linear-gradient(180deg, #74b3e8 0%, #a8d8ea 40%, #f0f8ff 75%, #fff9f0 100%)",
+  "midday":     "linear-gradient(180deg, #3a85cc 0%, #74b7e8 40%, #c8e8f8 70%, #eef7ff 100%)",
+  "afternoon":  "linear-gradient(180deg, #6ea8d8 0%, #aeccea 45%, #ffe5b0 75%, #fff5e0 100%)",
+  "evening":    "linear-gradient(180deg, #2a1060 0%, #7b2fa0 16%, #cc4b7a 34%, #f06030 53%, #f5a030 68%, #ffd080 84%, #fff0c0 100%)",
+  "night":      "linear-gradient(180deg, #080414 0%, #12062a 45%, #0a1830 75%, #102030 100%)",
+};
+
+let _currentTOD = null;
+let _todTimer    = null;
+
 function applyTOD() {
   const tod = getCurrentTOD();
-  document.documentElement.setAttribute("data-tod", tod);
-  // Update timezone label to also show time of day
-  const tz = document.querySelector(".timezone");
+  const tz  = document.querySelector(".timezone");
   if (tz) tz.textContent = `Local time · ${TOD_LABELS[tod] || ""}`;
+
+  if (tod === _currentTOD) return;
+
+  const overlay     = document.getElementById("bgOverlay");
+  const newGradient = TOD_GRADIENTS[tod];
+
+  if (!overlay || !newGradient) {
+    // Fallback: instant swap
+    document.documentElement.setAttribute("data-tod", tod);
+    _currentTOD = tod;
+    return;
+  }
+
+  // Cancel any in-flight transition
+  if (_todTimer) { clearTimeout(_todTimer); _todTimer = null; }
+
+  // Place the incoming gradient on the overlay and fade it in
+  overlay.style.background  = newGradient;
+  overlay.style.transition  = "none";
+  overlay.style.opacity     = "0";
+  void overlay.offsetWidth; // force reflow so the reset lands
+  overlay.style.transition  = "";
+  overlay.style.opacity     = "1";
+
+  // After the fade completes: bake the new gradient into the base, snap overlay away
+  _todTimer = setTimeout(() => {
+    document.documentElement.setAttribute("data-tod", tod);
+    overlay.style.transition = "none";
+    overlay.style.opacity    = "0";
+    requestAnimationFrame(() => { overlay.style.transition = ""; });
+    _currentTOD = tod;
+    _todTimer   = null;
+  }, 2600);
 }
 
 function initTOD() {
-  applyTOD();
+  _currentTOD = getCurrentTOD();
+  document.documentElement.setAttribute("data-tod", _currentTOD);
+  const tz = document.querySelector(".timezone");
+  if (tz) tz.textContent = `Local time · ${TOD_LABELS[_currentTOD] || ""}`;
   setInterval(applyTOD, 60_000);
 }
 
@@ -712,11 +759,13 @@ function updatePomoDisplay() {
     elements.pomoSection.hidden = true;
     elements.pomoToggleBtn.textContent = "Pomodoro";
     elements.pomoToggleBtn.classList.remove("pomo-active");
+    if (elements.startBtn && !state.data.running.isRunning) elements.startBtn.textContent = "Start Reading";
     return;
   }
   elements.pomoSection.hidden = false;
   elements.pomoToggleBtn.textContent = "Pomodoro on";
   elements.pomoToggleBtn.classList.add("pomo-active");
+  if (elements.startBtn && !state.data.running.isRunning) elements.startBtn.textContent = "Start Focus";
   if (p.endTime) {
     const rem = Math.max(0, p.endTime - Date.now());
     elements.pomoTime.textContent = `${String(Math.floor(rem / 60000)).padStart(2,"0")}:${String(Math.floor((rem % 60000) / 1000)).padStart(2,"0")}`;
@@ -742,21 +791,22 @@ function tickPomodoro() {
         focusTotalMs = pomoBreakMs();
       } else {
         p.endTime = null;
-        showFocusDonePrompt();
+        if (readingPomoActive) showSplitPomoDone(); else showFocusDonePrompt();
       }
     } else {
       p.endTime = null;
-      showFocusDonePrompt();
+      if (readingPomoActive) showSplitPomoDone(); else showFocusDonePrompt();
     }
   }
   updatePomoDisplay();
-  updateFocusOverlay();
+  if (readingPomoActive) updateSplitFocusPanel(); else updateFocusOverlay();
 }
 
 // ─── Focus Mode Overlay ───────────────────────────────────────────────────────
 
-let focusTotalMs = 0;
-let focusHideTimer = null;
+let focusTotalMs    = 0;
+let focusHideTimer  = null;
+let focusFromReading = false;  // true when standalone focus was spawned from reading split
 
 function openFocusOverlay() {
   const ov = document.getElementById("focusOverlay");
@@ -841,12 +891,23 @@ function showFocusDonePrompt() {
   }
 }
 
+function _focusEnd_returnOrStop() {
+  state.pomo.endTime = null;
+  state.pomo.enabled = false;
+  closeFocusOverlay();
+  if (focusFromReading) {
+    focusFromReading = false;
+    // Reading session is still running — reopen reading overlay
+    openReadingOverlay();
+  } else if (state.data.running.isRunning) {
+    stopTimer();
+  } else {
+    updatePomoDisplay();
+  }
+}
+
 function initFocusOverlay() {
-  document.getElementById("focusStopBtn")?.addEventListener("click", () => {
-    closeFocusOverlay();
-    if (state.data.running.isRunning) stopTimer();
-    else { state.pomo.endTime = null; updatePomoDisplay(); }
-  });
+  document.getElementById("focusStopBtn")?.addEventListener("click", _focusEnd_returnOrStop);
 
   document.getElementById("focusSameBtn")?.addEventListener("click", () => {
     const p = state.pomo;
@@ -861,25 +922,295 @@ function initFocusOverlay() {
   });
 
   document.getElementById("focusNewBtn")?.addEventListener("click", () => {
+    state.pomo.endTime = null;
+    state.pomo.enabled = false;
     closeFocusOverlay();
-    if (state.data.running.isRunning) stopTimer();
-    else { state.pomo.endTime = null; updatePomoDisplay(); }
-    document.querySelector(".timer-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (focusFromReading) {
+      focusFromReading = false;
+      openReadingOverlay();
+    } else {
+      if (state.data.running.isRunning) stopTimer();
+      else updatePomoDisplay();
+      document.querySelector(".timer-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   });
 
-  document.getElementById("focusQuitBtn")?.addEventListener("click", () => {
-    closeFocusOverlay();
-    if (state.data.running.isRunning) stopTimer();
-    else { state.pomo.endTime = null; updatePomoDisplay(); }
+  document.getElementById("focusQuitBtn")?.addEventListener("click", _focusEnd_returnOrStop);
+}
+
+// ─── Reading Mode Overlay ────────────────────────────────────────────────────
+
+let readingPomoActive  = false;
+let splitSelectedPanel = null;  // "reading" | "focus" | null
+let readingHideTimer   = null;
+
+function updateSplitSelection() {
+  const rPanel     = document.getElementById("splitReadingPanel");
+  const fPanel     = document.getElementById("splitFocusPanel");
+  const splitEl    = document.getElementById("readingSplit");
+  const panelStopBtn = document.getElementById("splitPanelStopBtn");
+  if (!rPanel || !fPanel) return;
+  const sel = splitSelectedPanel;
+  rPanel.classList.toggle("is-selected", sel === "reading");
+  rPanel.classList.toggle("is-dimmed",   sel === "focus");
+  fPanel.classList.toggle("is-selected", sel === "focus");
+  fPanel.classList.toggle("is-dimmed",   sel === "reading");
+  if (splitEl) splitEl.classList.toggle("has-selection", sel !== null);
+  if (panelStopBtn) {
+    panelStopBtn.hidden = sel === null;
+    if (sel) panelStopBtn.textContent = sel === "reading" ? "Stop Reading" : "Stop Focus";
+  }
+}
+
+function setSplitSelection(panel) {
+  splitSelectedPanel = panel;
+  updateSplitSelection();
+}
+
+function readingOverlayIsOpen() {
+  const ov = document.getElementById("readingOverlay");
+  return !!ov && ov.classList.contains("is-open");
+}
+
+function openReadingOverlay() {
+  const ov = document.getElementById("readingOverlay");
+  if (!ov) return;
+  if (readingHideTimer) { clearTimeout(readingHideTimer); readingHideTimer = null; }
+  splitSelectedPanel = null;
+  updateSplitSelection();
+  document.getElementById("readingMain").hidden    = false;
+  document.getElementById("readingPomoSetup").hidden = true;
+  document.getElementById("readingSplit").hidden   = true;
+  document.getElementById("splitControls").hidden  = true;
+  const fi = document.getElementById("readingFocusInput");
+  const bi = document.getElementById("readingBreakInput");
+  if (fi) fi.value = state.pomo.focusMin;
+  if (bi) bi.value = state.pomo.breakMin;
+  const pomoBtn = document.getElementById("readingPomoToggle");
+  if (pomoBtn) { pomoBtn.textContent = "Focus Mode"; pomoBtn.classList.remove("active"); }
+  ov.hidden = false;
+  ov.removeAttribute("inert");
+  ov.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(() => {
+    ov.classList.add("is-open");
+    updateReadingOverlay();
   });
+  lockBodyScroll("reading");
+}
+
+function closeReadingOverlay() {
+  const ov = document.getElementById("readingOverlay");
+  if (!ov) return;
+  ov.classList.remove("is-open");
+  ov.setAttribute("aria-hidden", "true");
+  ov.setAttribute("inert", "");
+  if (readingHideTimer) clearTimeout(readingHideTimer);
+  readingHideTimer = setTimeout(() => {
+    ov.hidden = true;
+    readingHideTimer = null;
+  }, 560);
+  unlockBodyScroll("reading");
+  readingPomoActive  = false;
+  splitSelectedPanel = null;
+}
+
+function formatElapsed(ms) {
+  const totalS = Math.floor(ms / 1000);
+  const h = Math.floor(totalS / 3600);
+  const m = Math.floor((totalS % 3600) / 60);
+  const s = totalS % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+
+function updateReadingOverlay() {
+  if (!readingOverlayIsOpen()) return;
+  const r = state.data.running;
+  const elapsed = r.sessionStart ? Math.max(0, Date.now() - new Date(r.sessionStart).getTime()) : 0;
+  const fmt = formatElapsed(elapsed);
+  const el1 = document.getElementById("readingElapsed");
+  const el2 = document.getElementById("splitElapsed");
+  if (el1) el1.textContent = fmt;
+  if (el2) el2.textContent = fmt;
+
+  const cs = getComputedStyle(document.documentElement);
+  const accentColor = cs.getPropertyValue("--accent").trim() || "#ff7b54";
+  const todayHours = hoursFromMs(getLiveDayMs(getLocalDateKey(new Date())));
+  const pct = Math.min(1, state.goal > 0 ? todayHours / state.goal : 0);
+  const CIRC_86 = 2 * Math.PI * 86;
+  const CIRC_66 = 2 * Math.PI * 66;
+
+  const rf = document.getElementById("readingRingFill");
+  if (rf) { rf.style.strokeDashoffset = String(CIRC_86 * (1 - pct)); rf.style.stroke = accentColor; }
+  const srf = document.getElementById("splitReadFill");
+  if (srf) { srf.style.strokeDashoffset = String(CIRC_66 * (1 - pct)); srf.style.stroke = accentColor; }
+
+  if (readingPomoActive) updateSplitFocusPanel();
+}
+
+function updateSplitFocusPanel() {
+  const p = state.pomo;
+  const isBreak = p.phase === "break";
+  const countdown  = document.getElementById("splitCountdown");
+  const focusLabel = document.getElementById("splitFocusLabel");
+  const focusSub   = document.getElementById("splitFocusSub");
+  const sfFill     = document.getElementById("splitFocusFill");
+  const CIRC_66    = 2 * Math.PI * 66;
+  const cs = getComputedStyle(document.documentElement);
+
+  if (focusLabel) { focusLabel.textContent = isBreak ? "BREAK" : "FOCUS"; focusLabel.classList.toggle("is-break", isBreak); }
+  if (countdown)  { countdown.classList.toggle("is-break", isBreak); }
+  if (focusSub)   { focusSub.textContent = isBreak ? "rest & breathe" : "stay focused"; }
+
+  if (p.endTime) {
+    const rem = Math.max(0, p.endTime - Date.now());
+    const m = Math.floor(rem / 60000), s = Math.floor((rem % 60000) / 1000);
+    if (countdown) countdown.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    if (sfFill && focusTotalMs > 0) {
+      const pct  = Math.min(1, rem / focusTotalMs);
+      const col  = isBreak ? (cs.getPropertyValue("--teal").trim() || "#39d0e0") : (cs.getPropertyValue("--accent").trim() || "#ff7b54");
+      sfFill.style.strokeDashoffset = String(CIRC_66 * (1 - pct));
+      sfFill.style.stroke = col;
+    }
+  }
+}
+
+function showSplitPomoDone() {
+  const countEl  = document.getElementById("splitFocusCount");
+  const doneEl   = document.getElementById("splitPomoDone");
+  const cyclesEl = document.getElementById("splitDoneCycles");
+  if (countEl) countEl.hidden = true;
+  if (doneEl)  doneEl.hidden  = false;
+  if (cyclesEl) {
+    const n = state.pomo.cycles;
+    cyclesEl.textContent = `${n} cycle${n !== 1 ? "s" : ""} completed`;
+  }
+}
+
+function startReadingPomo() {
+  const fi = document.getElementById("readingFocusInput");
+  const bi = document.getElementById("readingBreakInput");
+  const f  = parseInt(fi?.value, 10);
+  const b  = parseInt(bi?.value, 10);
+  if (f > 0 && f <= 99) state.pomo.focusMin = f;
+  if (!isNaN(b) && b >= 0 && b <= 99) state.pomo.breakMin = b;
+  savePomoSettings();
+
+  state.pomo.enabled = true;
+  state.pomo.phase   = "focus";
+  state.pomo.cycles  = 0;
+  state.pomo.endTime = Date.now() + pomoFocusMs();
+  focusTotalMs       = pomoFocusMs();
+  readingPomoActive  = true;
+
+  document.getElementById("readingMain").hidden    = true;
+  document.getElementById("readingSplit").hidden   = false;
+  document.getElementById("splitControls").hidden  = false;
+  document.getElementById("splitFocusCount").hidden = false;
+  document.getElementById("splitPomoDone").hidden  = true;
+
+  updateReadingOverlay();
+  updatePomoDisplay();
+}
+
+function endReadingPomo() {
+  state.pomo.enabled = false;
+  state.pomo.endTime = null;
+  readingPomoActive  = false;
+  splitSelectedPanel = null;
+
+  document.getElementById("readingSplit").hidden   = true;
+  document.getElementById("splitControls").hidden  = true;
+  document.getElementById("readingMain").hidden    = false;
+  document.getElementById("readingPomoSetup").hidden = true;
+  const pomoBtn = document.getElementById("readingPomoToggle");
+  if (pomoBtn) { pomoBtn.textContent = "Focus Mode"; pomoBtn.classList.remove("active"); }
+
+  updatePomoDisplay();
+  updateReadingOverlay();
+}
+
+function initReadingOverlay() {
+  // ── Reading-only controls ────────────────────────────────
+  document.getElementById("readingPomoToggle")?.addEventListener("click", () => {
+    const setup   = document.getElementById("readingPomoSetup");
+    const btn     = document.getElementById("readingPomoToggle");
+    const showing = !setup.hidden;
+    setup.hidden  = showing;
+    if (btn) btn.classList.toggle("active", !showing);
+  });
+
+  document.getElementById("readingPomoCancel")?.addEventListener("click", () => {
+    document.getElementById("readingPomoSetup").hidden = true;
+    document.getElementById("readingPomoToggle")?.classList.remove("active");
+  });
+
+  document.getElementById("readingPomoStart")?.addEventListener("click", startReadingPomo);
+
+  document.getElementById("readingStopBtn")?.addEventListener("click", () => {
+    closeReadingOverlay();
+    stopTimer();
+  });
+
+  // ── Split-view panel selection ───────────────────────────
+  function onPanelClick(panelKey, e) {
+    if (e.target.closest("button, input, label")) return; // let inner controls work
+    setSplitSelection(splitSelectedPanel === panelKey ? null : panelKey);
+  }
+  document.getElementById("splitReadingPanel")?.addEventListener("click", (e) => onPanelClick("reading", e));
+  document.getElementById("splitFocusPanel")  ?.addEventListener("click", (e) => onPanelClick("focus",   e));
+
+  // ── Split-view stop buttons ──────────────────────────────
+
+  // "Stop Session" — always ends everything
+  document.getElementById("splitStopBtn")?.addEventListener("click", () => {
+    splitSelectedPanel = null;
+    closeReadingOverlay();
+    stopTimer();
+  });
+
+  // "Stop [Reading / Focus]" — stops only the selected panel
+  document.getElementById("splitPanelStopBtn")?.addEventListener("click", () => {
+    if (splitSelectedPanel === "focus") {
+      // End focus, reading-only continues
+      endReadingPomo();
+
+    } else if (splitSelectedPanel === "reading") {
+      // Stop reading session; focus continues in standalone overlay
+      const savedPhase   = state.pomo.phase;
+      const savedEndTime = state.pomo.endTime;
+      const savedCycles  = state.pomo.cycles;
+      const savedTotal   = focusTotalMs;
+      splitSelectedPanel = null;
+      stopTimer();                  // saves session, resets pomo.enabled
+      state.pomo.enabled  = true;
+      state.pomo.phase    = savedPhase;
+      state.pomo.endTime  = savedEndTime;
+      state.pomo.cycles   = savedCycles;
+      focusFromReading    = false;
+      openFocusOverlay();
+      focusTotalMs = savedTotal;    // restore after openFocusOverlay() resets it
+    }
+  });
+
+  // ── Round-complete prompt inside focus panel ─────────────
+  document.getElementById("splitSameTimeBtn")?.addEventListener("click", () => {
+    document.getElementById("splitFocusCount").hidden = false;
+    document.getElementById("splitPomoDone").hidden   = true;
+    state.pomo.phase   = "focus";
+    state.pomo.endTime = Date.now() + pomoFocusMs();
+    focusTotalMs       = pomoFocusMs();
+    updateSplitFocusPanel();
+    updatePomoDisplay();
+    playChime(false);
+  });
+
+  document.getElementById("splitEndPomoBtn")?.addEventListener("click", endReadingPomo);
 }
 
 function togglePomodoro() {
   state.pomo.enabled = !state.pomo.enabled;
-  if (state.pomo.enabled) {
-    state.pomo.phase = "focus"; state.pomo.cycles = 0;
-    state.pomo.endTime = state.data.running.isRunning ? Date.now() + pomoFocusMs() : null;
-  } else { state.pomo.endTime = null; }
+  if (!state.pomo.enabled) state.pomo.endTime = null;
   updatePomoDisplay();
 }
 
@@ -936,9 +1267,7 @@ function updateSessionDisplay() {
   }
   elements.startBtn.disabled = run.isRunning;
   elements.stopBtn.disabled  = !run.isRunning;
-  elements.startBtn.textContent = state.pomo.enabled
-    ? (run.isRunning ? "Running…" : "Start Focus")
-    : "Start Reading";
+  elements.startBtn.textContent = run.isRunning ? "Running…" : (state.pomo.enabled ? "Start Focus" : "Start Reading");
 }
 
 function refreshHistory() {
@@ -1566,6 +1895,7 @@ function tickProductivity() {
   handleDayChange(new Date()); updateSessionDisplay(); refreshTodaySummary(); refreshGoalBar(); refreshStreak();
   if (state.selectedDateKey === getLocalDateKey(new Date())) updateDayDetail();
   refreshCalendarInsights();
+  updateReadingOverlay();
 }
 
 // ---- TIMER ACTIONS ---------------------------------------------------------
@@ -1596,12 +1926,19 @@ function doStartTimer(label) {
   r.isRunning = true; r.sessionStart = r.activeStart = now.toISOString(); r.lastDateKey = getLocalDateKey(now);
   saveData();
   if (state.pomo.enabled) {
-    state.pomo.phase = "focus";
+    // Standalone focus mode — track time but open focus overlay directly
+    state.pomo.phase   = "focus";
     state.pomo.endTime = Date.now() + pomoFocusMs();
-    focusTotalMs = pomoFocusMs();
-    updatePomoDisplay();
+    state.pomo.cycles  = 0;
+    focusTotalMs       = pomoFocusMs();
+    focusFromReading   = false;
     openFocusOverlay();
+  } else {
+    state.pomo.endTime = null;
+    state.pomo.cycles  = 0;
+    openReadingOverlay();
   }
+  updatePomoDisplay();
   updateSessionDisplay(); refreshAll();
 }
 
@@ -1625,9 +1962,12 @@ function stopTimer() {
   pendingSessionLabel = "";
   r.isRunning = false;
   r.sessionStart = r.activeStart = r.lastDateKey = null;
-  if (state.pomo.enabled) { state.pomo.endTime = null; updatePomoDisplay(); }
+  state.pomo.enabled = false;
+  state.pomo.endTime = null;
+  updatePomoDisplay();
   saveData(); updateSessionDisplay(); refreshAll();
   shimmerCard(document.querySelector(".timer-card"));
+  if (readingOverlayIsOpen()) closeReadingOverlay();
 }
 
 function openClearModal() {
@@ -1794,7 +2134,7 @@ function initPomoSettings() {
 function initKeyboard() {
   document.addEventListener("keydown", (e) => {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-    if (e.code === "Space") { if (focusOverlayIsOpen()) return; e.preventDefault(); state.data.running.isRunning ? stopTimer() : startTimer(); }
+    if (e.code === "Space") { if (focusOverlayIsOpen() || readingOverlayIsOpen()) return; e.preventDefault(); state.data.running.isRunning ? stopTimer() : startTimer(); }
     else if (e.code === "Escape") {
       closeSessionModal(); closeGoalModal(); closeClearModal(); closeTour();
     }
@@ -2029,6 +2369,7 @@ function init() {
   initKeyboard();
   initPomoSettings();
   initFocusOverlay();
+  initReadingOverlay();
   initMonthChart();
   initTour();
 }
