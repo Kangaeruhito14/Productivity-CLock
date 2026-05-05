@@ -20,6 +20,7 @@
     </div>
 
     <div class="background">
+      <div id="bgOverlay"></div>
       <span class="orb orb-one"></span>
       <span class="orb orb-two"></span>
       <span class="orb orb-three"></span>
@@ -364,6 +365,87 @@
         <span class="tour-dots" id="tourDots"></span>
         <button class="tour-btn tour-btn-primary" id="tourNext">Next →</button>
       </div>
+    </div>
+    <!-- Reading Mode Overlay -->
+    <div class="reading-overlay" id="readingOverlay" role="dialog" aria-label="Reading session" aria-hidden="true" hidden inert>
+
+      <!-- State 1: Reading main (single ring view) -->
+      <div class="reading-main" id="readingMain">
+        <div class="reading-ring-wrap">
+          <svg class="reading-ring-svg" viewBox="0 0 200 200" aria-hidden="true">
+            <circle class="rring-track" cx="100" cy="100" r="86"/>
+            <circle class="rring-fill" id="readingRingFill" cx="100" cy="100" r="86"/>
+          </svg>
+          <div class="reading-center">
+            <span class="reading-mode-lbl">READING</span>
+            <div class="reading-elapsed" id="readingElapsed">00:00</div>
+            <span class="reading-sub-lbl">session time</span>
+          </div>
+        </div>
+        <div class="reading-pomo-setup" id="readingPomoSetup" hidden>
+          <div class="rps-row">
+            <label class="pomo-set-item">Focus <input type="number" id="readingFocusInput" class="rov-num-input" min="1" max="99"> min</label>
+            <span class="pomo-set-sep">·</span>
+            <label class="pomo-set-item">Break <input type="number" id="readingBreakInput" class="rov-num-input" min="0" max="99"> min</label>
+          </div>
+          <div class="rps-actions">
+            <button class="rov-btn rov-ghost" id="readingPomoCancel">Cancel</button>
+            <button class="rov-btn rov-primary" id="readingPomoStart">Start Focus</button>
+          </div>
+        </div>
+        <div class="reading-controls">
+          <button class="rov-pomo-btn" id="readingPomoToggle">Focus Mode</button>
+          <button class="rov-stop-btn" id="readingStopBtn">Stop Session</button>
+        </div>
+      </div>
+
+      <!-- State 2: Split view (reading + focus side by side) -->
+      <div class="reading-split" id="readingSplit" hidden>
+        <div class="split-reading-panel" id="splitReadingPanel">
+          <p class="split-panel-label">READING</p>
+          <div class="split-ring-wrap">
+            <svg viewBox="0 0 160 160" class="split-ring-svg" aria-hidden="true">
+              <circle class="srring-track" cx="80" cy="80" r="66"/>
+              <circle class="srring-fill" id="splitReadFill" cx="80" cy="80" r="66"/>
+            </svg>
+            <div class="split-center">
+              <div class="split-elapsed" id="splitElapsed">00:00</div>
+              <span class="split-sub">session</span>
+            </div>
+          </div>
+        </div>
+        <div class="split-vdivider" id="splitDivider" aria-hidden="true"></div>
+        <div class="split-focus-panel" id="splitFocusPanel">
+          <p class="split-panel-label" id="splitFocusLabel">FOCUS</p>
+          <div id="splitFocusCount">
+            <div class="split-ring-wrap">
+              <svg viewBox="0 0 160 160" class="split-ring-svg" aria-hidden="true">
+                <circle class="sfring-track" cx="80" cy="80" r="66"/>
+                <circle class="sfring-fill" id="splitFocusFill" cx="80" cy="80" r="66"/>
+              </svg>
+              <div class="split-center">
+                <div class="split-countdown" id="splitCountdown">25:00</div>
+                <span class="split-sub" id="splitFocusSub">stay focused</span>
+              </div>
+            </div>
+          </div>
+          <div id="splitPomoDone" hidden>
+            <p class="spd-title">Round complete</p>
+            <p class="spd-cycles" id="splitDoneCycles">1 cycle completed</p>
+            <div class="spd-actions">
+              <button class="rov-btn rov-primary" id="splitSameTimeBtn">Same time</button>
+              <button class="rov-btn rov-subtle"  id="splitEndPomoBtn">Continue reading</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Split controls row -->
+      <div class="split-controls" id="splitControls" hidden>
+        <button class="rov-panel-stop-btn" id="splitPanelStopBtn" hidden>Stop Focus</button>
+        <button class="rov-stop-btn" id="splitStopBtn">Stop Session</button>
+      </div>
+
     </div>
     <!-- Focus Mode Overlay -->
     <div class="focus-overlay" id="focusOverlay" role="dialog" aria-label="Focus timer" aria-hidden="true" hidden inert>
