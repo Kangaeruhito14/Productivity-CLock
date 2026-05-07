@@ -1,76 +1,78 @@
-const STORAGE_KEY = "productivity-clock-data-v1";
-const GOAL_KEY    = "productivity-clock-goal-v1";
-const TOUR_KEY    = "productivity-clock-tour-v1";
-const THEME_KEY   = "productivity-clock-theme-v1";
-const POMO_KEY    = "productivity-clock-pomo-v1";
+const STORAGE_KEY     = "productivity-clock-data-v1";
+const GOAL_KEY        = "productivity-clock-goal-v1";
+const GOAL_DATE_KEY   = "productivity-clock-goal-date-v1";
+const TOUR_KEY        = "productivity-clock-tour-v1";
+const THEME_KEY       = "productivity-clock-theme-v1";
+const POMO_KEY        = "productivity-clock-pomo-v1";
+const TIME_FORMAT_KEY = "productivity-clock-fmt-v1";
 
 // ---- THEMES ----------------------------------------------------------------
 
 const THEMES = {
   warm: {
-    "--bg": "#f4f0e8", "--ink": "#1b1b1b", "--muted": "#6b6b6b",
-    "--card": "rgba(255,248,240,0.92)", "--stroke": "rgba(241,124,88,0.13)",
-    "--surface": "rgba(255,238,222,0.80)",
-    "--accent-bg": "rgba(241,124,88,0.14)", "--teal-bg": "rgba(47,143,157,0.12)",
-    "--green-bg": "rgba(76,149,108,0.14)",
-    "--accent": "#f17c58", "--accent-strong": "#ef6a3f",
-    "--teal": "#2f8f9d", "--gold": "#f2c14e", "--green": "#4c956c",
-    "--shadow": "0 28px 60px rgba(200,80,30,0.14)",
-    "--chart-box": "rgba(18, 14, 32, 0.93)",
+    "--bg": "#f6f0e8", "--ink": "#1e1916", "--muted": "#7a6354",
+    "--card": "rgba(255,248,238,0.92)", "--stroke": "rgba(201,101,74,0.12)",
+    "--surface": "rgba(252,240,224,0.80)",
+    "--accent-bg": "rgba(201,101,74,0.13)", "--teal-bg": "rgba(74,127,148,0.11)",
+    "--green-bg": "rgba(87,138,94,0.13)",
+    "--accent": "#c9654a", "--accent-strong": "#a8432e",
+    "--teal": "#4a7f94", "--gold": "#c49b3c", "--green": "#578a5e",
+    "--shadow": "0 28px 60px rgba(170,55,15,0.12)",
+    "--chart-box": "rgba(20, 14, 28, 0.93)",
   },
   dark: {
-    "--bg": "#0d1117", "--ink": "#e6edf3", "--muted": "#8b949e",
-    "--card": "rgba(22,27,34,0.94)", "--stroke": "rgba(240,246,252,0.10)",
+    "--bg": "#0e1320", "--ink": "#dde4ee", "--muted": "#7a8898",
+    "--card": "rgba(18,24,36,0.94)", "--stroke": "rgba(220,234,248,0.09)",
     "--surface": "rgba(255,255,255,0.05)",
-    "--accent-bg": "rgba(255,123,84,0.14)", "--teal-bg": "rgba(57,208,224,0.12)",
-    "--green-bg": "rgba(86,201,139,0.13)",
-    "--accent": "#ff7b54", "--accent-strong": "#ff5733",
-    "--teal": "#39d0e0", "--gold": "#ffd166", "--green": "#56c98b",
-    "--shadow": "0 28px 60px rgba(0,0,0,0.5)",
+    "--accent-bg": "rgba(230,121,89,0.13)", "--teal-bg": "rgba(61,184,200,0.11)",
+    "--green-bg": "rgba(68,168,122,0.12)",
+    "--accent": "#e67959", "--accent-strong": "#cc5a3a",
+    "--teal": "#3db8c8", "--gold": "#d4a740", "--green": "#44a87a",
+    "--shadow": "0 28px 60px rgba(0,0,0,0.55)",
     "--chart-box": "rgba(4, 6, 14, 0.97)",
   },
   ocean: {
-    "--bg": "#d8eef8", "--ink": "#0a2640", "--muted": "#3a6080",
-    "--card": "rgba(206,240,255,0.91)", "--stroke": "rgba(0,150,199,0.15)",
-    "--surface": "rgba(182,228,250,0.76)",
-    "--accent-bg": "rgba(0,150,199,0.14)", "--teal-bg": "rgba(0,180,216,0.12)",
-    "--green-bg": "rgba(82,183,136,0.14)",
-    "--accent": "#0096c7", "--accent-strong": "#0077b6",
-    "--teal": "#00b4d8", "--gold": "#48cae4", "--green": "#52b788",
-    "--shadow": "0 28px 60px rgba(0,100,180,0.18)",
-    "--chart-box": "rgba(4, 18, 48, 0.94)",
+    "--bg": "#d6e8f4", "--ink": "#0a2438", "--muted": "#3c6480",
+    "--card": "rgba(200,232,254,0.88)", "--stroke": "rgba(21,104,160,0.14)",
+    "--surface": "rgba(178,220,248,0.74)",
+    "--accent-bg": "rgba(21,104,160,0.13)", "--teal-bg": "rgba(32,132,184,0.11)",
+    "--green-bg": "rgba(61,142,112,0.13)",
+    "--accent": "#1568a0", "--accent-strong": "#0d4d80",
+    "--teal": "#2084b8", "--gold": "#4ab8d8", "--green": "#3d8e70",
+    "--shadow": "0 28px 60px rgba(0,70,150,0.15)",
+    "--chart-box": "rgba(4, 16, 44, 0.94)",
   },
   forest: {
-    "--bg": "#e4eee0", "--ink": "#1a2e1a", "--muted": "#496050",
-    "--card": "rgba(220,242,214,0.92)", "--stroke": "rgba(106,153,78,0.16)",
-    "--surface": "rgba(200,232,192,0.78)",
-    "--accent-bg": "rgba(106,153,78,0.14)", "--teal-bg": "rgba(82,121,111,0.13)",
-    "--green-bg": "rgba(56,102,65,0.15)",
-    "--accent": "#6a994e", "--accent-strong": "#386641",
-    "--teal": "#52796f", "--gold": "#a7c957", "--green": "#386641",
-    "--shadow": "0 28px 60px rgba(50,100,40,0.16)",
-    "--chart-box": "rgba(6, 20, 8, 0.94)",
+    "--bg": "#e2eddc", "--ink": "#182c18", "--muted": "#4a6448",
+    "--card": "rgba(216,242,210,0.90)", "--stroke": "rgba(63,115,72,0.15)",
+    "--surface": "rgba(196,228,188,0.76)",
+    "--accent-bg": "rgba(63,115,72,0.13)", "--teal-bg": "rgba(58,107,96,0.12)",
+    "--green-bg": "rgba(43,92,58,0.14)",
+    "--accent": "#3f7348", "--accent-strong": "#2d5535",
+    "--teal": "#3a6b60", "--gold": "#7a9e40", "--green": "#2b5c3a",
+    "--shadow": "0 28px 60px rgba(25,75,20,0.14)",
+    "--chart-box": "rgba(4, 18, 8, 0.94)",
   },
   dusk: {
-    "--bg": "#ebe0f8", "--ink": "#2a1a3a", "--muted": "#6a5a7a",
-    "--card": "rgba(234,220,255,0.93)", "--stroke": "rgba(157,78,221,0.16)",
-    "--surface": "rgba(216,196,252,0.76)",
-    "--accent-bg": "rgba(199,125,255,0.15)", "--teal-bg": "rgba(157,78,221,0.13)",
-    "--green-bg": "rgba(123,94,167,0.15)",
-    "--accent": "#c77dff", "--accent-strong": "#9d4edd",
-    "--teal": "#9d4edd", "--gold": "#ff99c8", "--green": "#7b5ea7",
-    "--shadow": "0 28px 60px rgba(120,50,200,0.18)",
-    "--chart-box": "rgba(18, 6, 36, 0.94)",
+    "--bg": "#ece3f5", "--ink": "#1e1230", "--muted": "#6a5280",
+    "--card": "rgba(232,218,255,0.92)", "--stroke": "rgba(112,64,168,0.14)",
+    "--surface": "rgba(212,192,248,0.74)",
+    "--accent-bg": "rgba(112,64,168,0.13)", "--teal-bg": "rgba(104,82,184,0.12)",
+    "--green-bg": "rgba(94,72,160,0.13)",
+    "--accent": "#7040a8", "--accent-strong": "#522e90",
+    "--teal": "#6852b8", "--gold": "#b87aca", "--green": "#5e48a0",
+    "--shadow": "0 28px 60px rgba(80,24,160,0.15)",
+    "--chart-box": "rgba(16, 6, 32, 0.94)",
   },
 };
 
 // Particle colours per theme (r,g,b) + scale multiplier for opacity on light backgrounds
 const CANVAS_COLORS = {
-  warm:   { r: 180, g:  70, b:  30, scale: 2.8 },
-  dark:   { r:  57, g: 208, b: 224, scale: 1.0 },
-  ocean:  { r:   0, g:  80, b: 165, scale: 2.8 },
-  forest: { r:  35, g: 100, b:  20, scale: 2.8 },
-  dusk:   { r: 110, g:  25, b: 195, scale: 2.8 },
+  warm:   { r: 160, g:  70, b:  45, scale: 2.8 },
+  dark:   { r:  61, g: 184, b: 200, scale: 1.0 },
+  ocean:  { r:  21, g:  90, b: 160, scale: 2.8 },
+  forest: { r:  45, g: 100, b:  55, scale: 2.8 },
+  dusk:   { r: 110, g:  50, b: 168, scale: 2.8 },
 };
 
 let canvasRGB = CANVAS_COLORS.warm;
@@ -90,9 +92,7 @@ function applyTheme(name) {
 
 function initTheme() {
   applyTheme(localStorage.getItem(THEME_KEY) || "warm");
-  document.querySelectorAll(".theme-dot").forEach((d) =>
-    d.addEventListener("click", () => applyTheme(d.dataset.theme))
-  );
+  // Theme dots are now inside the settings panel; wired in initSettings()
 }
 
 // ---- TIME OF DAY -----------------------------------------------------------
@@ -473,6 +473,7 @@ const state = {
   data: loadData(),
   goal: loadGoal(),
   goalCelebrated: false,
+  timeFormat: loadTimeFormat(),
   pomo: { enabled: false, phase: "focus", endTime: null, cycles: 0, ...loadPomoSettings() },
 };
 
@@ -513,24 +514,39 @@ function loadGoal() {
 }
 
 function saveGoal(v) { localStorage.setItem(GOAL_KEY, String(v)); }
+function loadGoalDate() { return localStorage.getItem(GOAL_DATE_KEY) || ""; }
+function saveGoalDate(dateKey) { localStorage.setItem(GOAL_DATE_KEY, dateKey); }
+function goalAlreadySetToday() { return loadGoalDate() === getLocalDateKey(new Date()); }
 function saveData()  { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data)); }
 
 function loadPomoSettings() {
   try {
     const raw = localStorage.getItem(POMO_KEY);
-    if (!raw) return { focusMin: 25, breakMin: 5 };
+    if (!raw) return { focusSec: 1500, breakSec: 300, breakEnabled: true };
     const p = JSON.parse(raw);
+    // Migrate old focusMin/breakMin format
+    const fSec = p.focusSec ?? (p.focusMin ? p.focusMin * 60 : 1500);
+    const bSec = p.breakSec ?? (p.breakMin ? p.breakMin * 60 : 300);
     return {
-      focusMin: (p.focusMin > 0 && p.focusMin <= 99) ? p.focusMin : 25,
-      breakMin: (p.breakMin > 0 && p.breakMin <= 99) ? p.breakMin : 5,
+      focusSec:     Math.max(1, Math.min(86399, Math.round(fSec))),
+      breakSec:     Math.max(0, Math.min(86399, Math.round(bSec))),
+      breakEnabled: p.breakEnabled !== false,
     };
-  } catch { return { focusMin: 25, breakMin: 5 }; }
+  } catch { return { focusSec: 1500, breakSec: 300, breakEnabled: true }; }
 }
 function savePomoSettings() {
-  localStorage.setItem(POMO_KEY, JSON.stringify({ focusMin: state.pomo.focusMin, breakMin: state.pomo.breakMin }));
+  localStorage.setItem(POMO_KEY, JSON.stringify({
+    focusSec: state.pomo.focusSec, breakSec: state.pomo.breakSec, breakEnabled: state.pomo.breakEnabled,
+  }));
 }
-function pomoFocusMs() { return state.pomo.focusMin * 60 * 1000; }
-function pomoBreakMs() { return state.pomo.breakMin * 60 * 1000; }
+function pomoFocusMs() { return state.pomo.focusSec * 1000; }
+function pomoBreakMs() {
+  return (state.pomo.breakEnabled && state.pomo.breakSec > 0) ? state.pomo.breakSec * 1000 : 0;
+}
+function loadTimeFormat() {
+  const f = localStorage.getItem(TIME_FORMAT_KEY);
+  return ["hr","hr-min","hr-min-sec"].includes(f) ? f : "hr-min";
+}
 
 // ---- DATE UTILS ------------------------------------------------------------
 
@@ -550,7 +566,34 @@ function getNextMidnight(dateKey) {
 }
 
 function hoursFromMs(ms) { return ms / 36e5; }
-function formatHours(ms) { return hoursFromMs(ms).toFixed(2); }
+function formatHours(ms) { return hoursFromMs(ms).toFixed(2); }  // kept for chart math
+
+// Format a duration (ms) as a human-readable string obeying state.timeFormat
+function formatTime(ms) {
+  const totalS = Math.floor(ms / 1000);
+  const h = Math.floor(totalS / 3600);
+  const m = Math.floor((totalS % 3600) / 60);
+  const s = totalS % 60;
+  const fmt = state.timeFormat;
+  if (fmt === "hr") return `${(ms / 3600000).toFixed(2)} hrs`;
+  if (fmt === "hr-min-sec") {
+    if (h > 0) return `${h}h ${String(m).padStart(2,"0")}m ${String(s).padStart(2,"0")}s`;
+    if (m > 0) return `${m}m ${String(s).padStart(2,"0")}s`;
+    return `${s}s`;
+  }
+  // hr-min (default)
+  if (h > 0) return `${h}h ${String(m).padStart(2,"0")}m`;
+  return `${m}m`;
+}
+// Format a pomo countdown (ms remaining) — always MM:SS or H:MM:SS regardless of time format
+function formatCountdown(ms) {
+  const totalS = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalS / 3600);
+  const m = Math.floor((totalS % 3600) / 60);
+  const s = totalS % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
 
 function formatDuration(ms) {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -663,7 +706,7 @@ function refreshGoalBar() {
   const goal = currentGoalHours();
   const pct = Math.min((hoursFromMs(ms) / goal) * 100, 100);
   elements.goalFill.style.width = `${pct.toFixed(1)}%`;
-  elements.goalEditBtn.textContent = `${goal} hrs`;
+  elements.goalEditBtn.textContent = formatTime(goal * 3600000);
   if (pct >= 100 && !state.goalCelebrated) {
     state.goalCelebrated = true;
     burstConfetti(elements.goalFill);
@@ -674,13 +717,53 @@ function refreshGoalBar() {
 
 function editGoal() {
   const modal = document.getElementById("goalModal");
-  const input = document.getElementById("goalModalInput");
   if (!modal) return;
-  input.value = state.goal;
+
+  const locked   = goalAlreadySetToday();
+  const card     = modal.querySelector(".modal-card");
+  const warn     = document.getElementById("goalModalWarn");
+  const okBtn    = document.getElementById("goalModalOk");
+  const titleEl  = modal.querySelector(".modal-title");
+
+  // Apply / remove locked state on the card
+  if (card)    card.classList.toggle("goal-modal-locked", locked);
+  if (warn)    warn.hidden = !locked;
+  if (okBtn)   okBtn.disabled = locked;
+  if (titleEl) titleEl.textContent = locked ? "Today's goal" : "Set your focus target";
+
+  const totalSec = Math.round(state.goal * 3600);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const fmt = state.timeFormat;
+
+  // Ensure rows are shown/hidden correctly for the current format
+  const floatRow = document.getElementById("goalFloatRow");
+  const hmRow    = document.getElementById("goalHMRow");
+  const goalSEls = document.querySelectorAll(".goal-s-input, .goal-s-unit");
+  if (floatRow) floatRow.hidden = fmt !== "hr";
+  if (hmRow)    hmRow.hidden    = fmt === "hr";
+  goalSEls.forEach(el => { el.hidden = fmt !== "hr-min-sec"; });
+
+  let focusEl;
+  if (fmt === "hr") {
+    const floatEl = document.getElementById("goalModalInput");
+    if (floatEl) { floatEl.value = (totalSec / 3600).toFixed(2); floatEl.readOnly = locked; }
+    focusEl = locked ? null : floatEl;
+  } else {
+    const hEl = document.getElementById("goalModalH");
+    const mEl = document.getElementById("goalModalM");
+    const sEl = document.getElementById("goalModalS");
+    if (hEl) { hEl.value = h; hEl.readOnly = locked; }
+    if (mEl) { mEl.value = m; mEl.readOnly = locked; }
+    if (sEl) { sEl.value = s; sEl.readOnly = locked; }
+    focusEl = locked ? null : hEl;
+  }
+
   modal.hidden = false;
   requestAnimationFrame(() => requestAnimationFrame(() => {
     modal.classList.add("open");
-    input.focus(); input.select();
+    if (focusEl) { focusEl.focus(); focusEl.select(); }
   }));
 }
 
@@ -688,13 +771,70 @@ function closeGoalModal() {
   const modal = document.getElementById("goalModal");
   if (!modal) return;
   modal.classList.remove("open");
-  setTimeout(() => { modal.hidden = true; }, 350);
+  setTimeout(() => {
+    modal.hidden = true;
+    _goalConfirmPending = false;
+    // Reset all transient UI back to clean defaults
+    modal.querySelector(".modal-card")?.classList.remove("goal-modal-locked");
+    const okBtn = document.getElementById("goalModalOk");
+    if (okBtn) { okBtn.disabled = false; okBtn.textContent = "Save Goal"; okBtn.classList.remove("goal-ok-confirm"); }
+    const confirmWarn = document.getElementById("goalModalConfirmWarn");
+    if (confirmWarn) confirmWarn.hidden = true;
+    [document.getElementById("goalModalInput"),
+     document.getElementById("goalModalH"),
+     document.getElementById("goalModalM"),
+     document.getElementById("goalModalS")].forEach(el => { if (el) el.readOnly = false; });
+  }, 350);
+}
+
+let _goalConfirmPending = false;
+
+function _readGoalInputs() {
+  const fmt = state.timeFormat;
+  if (fmt === "hr") {
+    const val = parseFloat(document.getElementById("goalModalInput")?.value || "0");
+    return isNaN(val) ? 0 : Math.max(0, val);
+  }
+  const h = Math.max(0, parseInt(document.getElementById("goalModalH")?.value || "0", 10) || 0);
+  const m = Math.max(0, Math.min(59, parseInt(document.getElementById("goalModalM")?.value || "0", 10) || 0));
+  const s = fmt === "hr-min-sec"
+    ? Math.max(0, Math.min(59, parseInt(document.getElementById("goalModalS")?.value || "0", 10) || 0))
+    : 0;
+  return h + m / 60 + s / 3600;
 }
 
 function doSaveGoal() {
-  const input = document.getElementById("goalModalInput");
-  const n = parseFloat(input.value);
-  if (!isNaN(n) && n > 0) { state.goal = n; saveGoal(n); state.goalCelebrated = false; refreshGoalBar(); }
+  // Already locked — should not reach here, but guard anyway
+  if (goalAlreadySetToday()) { closeGoalModal(); return; }
+
+  const okBtn       = document.getElementById("goalModalOk");
+  const confirmWarn = document.getElementById("goalModalConfirmWarn");
+
+  if (!_goalConfirmPending) {
+    // Step 1 — show the once-per-day warning, wait for second click to confirm
+    _goalConfirmPending = true;
+    if (confirmWarn) confirmWarn.hidden = false;
+    if (okBtn) {
+      okBtn.textContent = "Yes, Save";
+      okBtn.classList.add("goal-ok-confirm");
+    }
+    // Lock the inputs so the user can't change the value after seeing the warning
+    [document.getElementById("goalModalInput"),
+     document.getElementById("goalModalH"),
+     document.getElementById("goalModalM"),
+     document.getElementById("goalModalS")].forEach(el => { if (el) el.readOnly = true; });
+    return;
+  }
+
+  // Step 2 — user confirmed; actually save
+  const decimalHours = _readGoalInputs();
+  if (decimalHours > 0) {
+    state.goal = decimalHours;
+    saveGoal(decimalHours);
+    saveGoalDate(getLocalDateKey(new Date()));
+    state.goalCelebrated = false;
+    refreshAll();
+  }
   closeGoalModal();
 }
 
@@ -767,11 +907,10 @@ function updatePomoDisplay() {
   elements.pomoToggleBtn.classList.add("pomo-active");
   if (elements.startBtn && !state.data.running.isRunning) elements.startBtn.textContent = "Start Focus";
   if (p.endTime) {
-    const rem = Math.max(0, p.endTime - Date.now());
-    elements.pomoTime.textContent = `${String(Math.floor(rem / 60000)).padStart(2,"0")}:${String(Math.floor((rem % 60000) / 1000)).padStart(2,"0")}`;
+    elements.pomoTime.textContent = formatCountdown(Math.max(0, p.endTime - Date.now()));
   } else {
-    const fm = String(p.focusMin).padStart(2,"0"), bm = String(p.breakMin).padStart(2,"0");
-    elements.pomoTime.textContent = p.phase === "focus" ? `${fm}:00` : `${bm}:00`;
+    const durMs = p.phase === "focus" ? pomoFocusMs() : pomoBreakMs();
+    elements.pomoTime.textContent = formatCountdown(durMs);
   }
   elements.pomoPhaseLabel.textContent  = p.phase === "focus" ? "Focus" : "Break";
   elements.pomoPhaseLabel.className    = `pomo-phase-label${p.phase === "break" ? " break" : ""}`;
@@ -785,7 +924,7 @@ function tickPomodoro() {
     if (p.phase === "focus") {
       p.cycles++;
       playChime(true);
-      if (p.breakMin > 0) {
+      if (pomoBreakMs() > 0) {
         p.phase    = "break";
         p.endTime  = Date.now() + pomoBreakMs();
         focusTotalMs = pomoBreakMs();
@@ -854,13 +993,14 @@ function updateFocusOverlay() {
   const ringFill   = document.getElementById("focusRingFill");
 
   if (p.endTime) {
-    const rem = Math.max(0, p.endTime - Date.now());
-    const m = Math.floor(rem / 60000);
-    const s = Math.floor((rem % 60000) / 1000);
-    if (countdown) countdown.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    const rem  = Math.max(0, p.endTime - Date.now());
+    const circ = 2 * Math.PI * 86; // 540.35
+    if (countdown) {
+      countdown.textContent = formatCountdown(rem);
+      countdown.classList.toggle("has-hours", rem >= 3600000);
+    }
     if (ringFill && focusTotalMs > 0) {
-      const pct  = Math.min(1, rem / focusTotalMs);
-      const circ = 2 * Math.PI * 86;
+      const pct = Math.min(1, rem / focusTotalMs);
       ringFill.style.strokeDashoffset = String(circ * (1 - pct));
     }
   }
@@ -945,9 +1085,9 @@ let splitSelectedPanel = null;  // "reading" | "focus" | null
 let readingHideTimer   = null;
 
 function updateSplitSelection() {
-  const rPanel     = document.getElementById("splitReadingPanel");
-  const fPanel     = document.getElementById("splitFocusPanel");
-  const splitEl    = document.getElementById("readingSplit");
+  const rPanel       = document.getElementById("splitReadingPanel");
+  const fPanel       = document.getElementById("splitFocusPanel");
+  const splitEl      = document.getElementById("readingSplit");
   const panelStopBtn = document.getElementById("splitPanelStopBtn");
   if (!rPanel || !fPanel) return;
   const sel = splitSelectedPanel;
@@ -955,7 +1095,11 @@ function updateSplitSelection() {
   rPanel.classList.toggle("is-dimmed",   sel === "focus");
   fPanel.classList.toggle("is-selected", sel === "focus");
   fPanel.classList.toggle("is-dimmed",   sel === "reading");
-  if (splitEl) splitEl.classList.toggle("has-selection", sel !== null);
+  if (splitEl) {
+    splitEl.classList.toggle("has-selection",   sel !== null);
+    splitEl.classList.toggle("focus-selected",  sel === "focus");
+    splitEl.classList.toggle("reading-selected", sel === "reading");
+  }
   if (panelStopBtn) {
     panelStopBtn.hidden = sel === null;
     if (sel) panelStopBtn.textContent = sel === "reading" ? "Stop Reading" : "Stop Focus";
@@ -982,10 +1126,12 @@ function openReadingOverlay() {
   document.getElementById("readingPomoSetup").hidden = true;
   document.getElementById("readingSplit").hidden   = true;
   document.getElementById("splitControls").hidden  = true;
-  const fi = document.getElementById("readingFocusInput");
-  const bi = document.getElementById("readingBreakInput");
-  if (fi) fi.value = state.pomo.focusMin;
-  if (bi) bi.value = state.pomo.breakMin;
+  _writeTimeEntry("rovFocusH","rovFocusM","rovFocusS", state.pomo.focusSec);
+  _writeTimeEntry("rovBreakH","rovBreakM","rovBreakS", state.pomo.breakSec);
+  const rovBreak = document.getElementById("rovBreakCheck");
+  if (rovBreak) rovBreak.checked = state.pomo.breakEnabled;
+  const rovEntry = document.getElementById("rovBreakEntry");
+  if (rovEntry) rovEntry.classList.toggle("disabled", !state.pomo.breakEnabled);
   const pomoBtn = document.getElementById("readingPomoToggle");
   if (pomoBtn) { pomoBtn.textContent = "Focus Mode"; pomoBtn.classList.remove("active"); }
   ov.hidden = false;
@@ -1055,7 +1201,7 @@ function updateSplitFocusPanel() {
   const focusLabel = document.getElementById("splitFocusLabel");
   const focusSub   = document.getElementById("splitFocusSub");
   const sfFill     = document.getElementById("splitFocusFill");
-  const CIRC_66    = 2 * Math.PI * 66;
+  const CIRC_66 = 2 * Math.PI * 66; // 414.69
   const cs = getComputedStyle(document.documentElement);
 
   if (focusLabel) { focusLabel.textContent = isBreak ? "BREAK" : "FOCUS"; focusLabel.classList.toggle("is-break", isBreak); }
@@ -1063,12 +1209,14 @@ function updateSplitFocusPanel() {
   if (focusSub)   { focusSub.textContent = isBreak ? "rest & breathe" : "stay focused"; }
 
   if (p.endTime) {
-    const rem = Math.max(0, p.endTime - Date.now());
-    const m = Math.floor(rem / 60000), s = Math.floor((rem % 60000) / 1000);
-    if (countdown) countdown.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    const rem  = Math.max(0, p.endTime - Date.now());
+    if (countdown) {
+      countdown.textContent = formatCountdown(rem);
+      countdown.classList.toggle("has-hours", rem >= 3600000);
+    }
     if (sfFill && focusTotalMs > 0) {
-      const pct  = Math.min(1, rem / focusTotalMs);
-      const col  = isBreak ? (cs.getPropertyValue("--teal").trim() || "#39d0e0") : (cs.getPropertyValue("--accent").trim() || "#ff7b54");
+      const pct = Math.min(1, rem / focusTotalMs);
+      const col = isBreak ? (cs.getPropertyValue("--teal").trim() || "#39d0e0") : (cs.getPropertyValue("--accent").trim() || "#ff7b54");
       sfFill.style.strokeDashoffset = String(CIRC_66 * (1 - pct));
       sfFill.style.stroke = col;
     }
@@ -1088,12 +1236,12 @@ function showSplitPomoDone() {
 }
 
 function startReadingPomo() {
-  const fi = document.getElementById("readingFocusInput");
-  const bi = document.getElementById("readingBreakInput");
-  const f  = parseInt(fi?.value, 10);
-  const b  = parseInt(bi?.value, 10);
-  if (f > 0 && f <= 99) state.pomo.focusMin = f;
-  if (!isNaN(b) && b >= 0 && b <= 99) state.pomo.breakMin = b;
+  const fSec = _readTimeEntry("rovFocusH","rovFocusM","rovFocusS", 1, 86399);
+  const bSec = _readTimeEntry("rovBreakH","rovBreakM","rovBreakS", 0, 86399);
+  const bEnabled = document.getElementById("rovBreakCheck")?.checked ?? true;
+  state.pomo.focusSec     = fSec;
+  state.pomo.breakSec     = bSec;
+  state.pomo.breakEnabled = bEnabled && bSec > 0;
   savePomoSettings();
 
   state.pomo.enabled = true;
@@ -1151,6 +1299,15 @@ function initReadingOverlay() {
     closeReadingOverlay();
     stopTimer();
   });
+
+  // ── Reading overlay break toggle ─────────────────────────
+  const rovBreakCheck = document.getElementById("rovBreakCheck");
+  const rovBreakEntry = document.getElementById("rovBreakEntry");
+  if (rovBreakCheck) {
+    rovBreakCheck.addEventListener("change", () => {
+      if (rovBreakEntry) rovBreakEntry.classList.toggle("disabled", !rovBreakCheck.checked);
+    });
+  }
 
   // ── Split-view panel selection ───────────────────────────
   function onPanelClick(panelKey, e) {
@@ -1240,11 +1397,11 @@ function buildClockTicks() {
 function refreshTodaySummary() {
   const ms = getLiveDayMs(getLocalDateKey(new Date()));
   const h  = hoursFromMs(ms), r = ratingForHours(h);
-  elements.todayTotal.textContent         = `${formatHours(ms)} hrs`;
-  elements.todayPointsSummary.textContent = formatHours(ms);
+  elements.todayTotal.textContent         = formatTime(ms);
+  elements.todayPointsSummary.textContent = formatTime(ms);
   elements.todayStatusSummary.textContent = r.label;
-  elements.todayHours.textContent         = `${formatHours(ms)} hrs`;
-  elements.todayPoints.textContent        = formatHours(ms);
+  elements.todayHours.textContent         = formatTime(ms);
+  elements.todayPoints.textContent        = formatTime(ms);
   elements.todayRating.textContent        = r.label;
 }
 
@@ -1276,7 +1433,7 @@ function refreshHistory() {
     const d = new Date(today); d.setDate(today.getDate() - i);
     const key = getLocalDateKey(d), ms = getLiveDayMs(key), h = hoursFromMs(ms), r = ratingForHours(h);
     const labels = (state.data.labels && state.data.labels[key]) || [];
-    items.push({ key, hours: formatHours(ms), label: r.label, tags: labels });
+    items.push({ key, hours: formatTime(ms), label: r.label, tags: labels });
   }
   elements.historyList.innerHTML = "";
   items.forEach((item) => {
@@ -1303,7 +1460,7 @@ function refreshHistory() {
     }
 
     const right = document.createElement("div");
-    right.textContent = `${item.hours} hrs`;
+    right.textContent = item.hours;
 
     row.append(left, right);
     elements.historyList.appendChild(row);
@@ -1330,7 +1487,7 @@ function renderCalendar() {
       if (h > 0) cell.classList.add(r.className);
       if (dateKey === getLocalDateKey(new Date())) cell.classList.add("today");
       if (dateKey === state.selectedDateKey) cell.classList.add("selected");
-      if (h > 0) { const hl = document.createElement("span"); hl.className = "day-hours"; hl.textContent = `${formatHours(ms)} hrs`; cell.appendChild(hl); }
+      if (h > 0) { const hl = document.createElement("span"); hl.className = "day-hours"; hl.textContent = formatTime(ms); cell.appendChild(hl); }
     }
     const num = document.createElement("span"); num.className = "day-number"; num.textContent = displayNum;
     cell.prepend(num);
@@ -1343,10 +1500,10 @@ function updateDayDetail() {
   const key = state.selectedDateKey, ms = getLiveDayMs(key), h = hoursFromMs(ms), r = ratingForHours(h);
   const [y, m, d] = key.split("-").map(Number), date = new Date(y, m - 1, d);
   elements.selectedDateLabel.textContent = date.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
-  elements.selectedDateHours.textContent = `${formatHours(ms)} hrs`;
+  elements.selectedDateHours.textContent = formatTime(ms);
   elements.selectedDateRating.textContent = r.label;
   elements.selectedDateRating.className  = `detail-pill ${r.className}`;
-  elements.selectedDatePoints.textContent = `${formatHours(ms)} pts`;
+  elements.selectedDatePoints.textContent = formatTime(ms);
 }
 
 function calculateGoalStreaks(goalHours) {
@@ -1561,14 +1718,15 @@ function renderMonthChart() {
   const sub1Fz = Math.max(7,  Math.round(clearR * 0.29));
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.fillStyle = ink;
-  ctx.font = `700 ${bigFz}px "IBM Plex Mono", monospace`;
-  const hDisplay = dayH < 10 ? dayH.toFixed(2) : dayH.toFixed(1);
+  const hDisplay = formatTime(dayH * 3600000);
+  const adjBigFz = hDisplay.length > 7 ? Math.max(10, Math.round(bigFz * 0.72)) : bigFz;
+  ctx.font = `700 ${adjBigFz}px "IBM Plex Mono", monospace`;
   ctx.fillText(hDisplay, cx, cy - clearR * 0.28);
   ctx.fillStyle = muted;
   ctx.font = `500 ${lblFz}px "Space Grotesk", sans-serif`;
-  ctx.fillText("hrs selected", cx, cy + clearR * 0.22);
+  ctx.fillText("focused", cx, cy + clearR * 0.22);
   ctx.font = `400 ${sub1Fz}px "Space Grotesk", sans-serif`;
-  ctx.fillText(`${Math.min(Math.round(dayPct * 100), 999)}% of ${goal}h`, cx, cy + clearR * 0.60);
+  ctx.fillText(`${Math.min(Math.round(dayPct * 100), 999)}% of ${formatTime(goal * 3600000)}`, cx, cy + clearR * 0.60);
   ctx.textBaseline = "alphabetic";
 
   // Legend (tiny dots + labels at bottom)
@@ -1745,7 +1903,7 @@ function initMonthChart() {
     tip.hidden = false;
     document.getElementById("ctDate").textContent =
       date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
-    document.getElementById("ctVal").textContent = h > 0 ? `${h.toFixed(2)} hrs` : "No data";
+    document.getElementById("ctVal").textContent = h > 0 ? formatTime(h * 3600000) : "No data";
 
     // Position above the cell centre
     tip.style.left = `${GX + col * (cw + GAP) + cw / 2}px`;
@@ -1771,11 +1929,11 @@ function updateMonthlyReport() {
   const targetH = goal * daysInMonth;
   const pct = targetH === 0 ? 0 : (totalH / targetH) * 100;
   elements.reportMonth.textContent   = state.currentMonth.toLocaleDateString([], { month: "short", year: "numeric" });
-  elements.monthHours.textContent    = `${totalH.toFixed(2)} hrs`;
-  elements.monthPoints.textContent   = totalH.toFixed(2);
+  elements.monthHours.textContent    = formatTime(totalMs);
+  elements.monthPoints.textContent   = formatTime(totalMs);
   elements.monthPercent.textContent  = `${pct.toFixed(1)}%`;
   elements.monthProgress.style.width = `${Math.min(pct, 100).toFixed(1)}%`;
-  elements.monthNote.textContent     = `${totalH.toFixed(2)} hrs out of ${targetH.toFixed(2)} goal hrs`;
+  elements.monthNote.textContent     = `${formatTime(totalMs)} out of ${formatTime(targetH * 3600000)} goal`;
 
   if (elements.monthBestDay || elements.monthGoalHitDays || elements.weekdayPatternRow || elements.monthTrendValue) {
     const days = [];
@@ -1788,7 +1946,7 @@ function updateMonthlyReport() {
     const best = days.reduce((top, cur) => (cur.hours > top.hours ? cur : top), { date: null, hours: 0 });
     if (elements.monthBestDay) {
       elements.monthBestDay.textContent = best.hours > 0
-        ? `${best.date.toLocaleDateString([], { month: "short", day: "numeric" })} — ${best.hours.toFixed(2)} hrs`
+        ? `${best.date.toLocaleDateString([], { month: "short", day: "numeric" })} — ${formatTime(best.hours * 3600000)}`
         : "No focused day yet";
     }
 
@@ -1827,7 +1985,7 @@ function updateMonthlyReport() {
 
         const value = document.createElement("span");
         value.className = "wp-avg";
-        value.textContent = `${avg.toFixed(1)}h`;
+        value.textContent = formatTime(avg * 3600000);
 
         item.append(label, bar, value);
         elements.weekdayPatternRow.appendChild(item);
@@ -1857,11 +2015,11 @@ function updateMonthlyReport() {
         elements.monthTrendValue.classList.add("mtr-flat");
       } else if (delta > 0) {
         elements.monthTrendValue.textContent =
-          `+${delta.toFixed(2)} hrs/day vs ${prevDate.toLocaleDateString([], { month: "long" })} ↑`;
+          `+${formatTime(delta * 3600000)}/day vs ${prevDate.toLocaleDateString([], { month: "long" })} ↑`;
         elements.monthTrendValue.classList.add("mtr-up");
       } else {
         elements.monthTrendValue.textContent =
-          `${delta.toFixed(2)} hrs/day vs ${prevDate.toLocaleDateString([], { month: "long" })} ↓`;
+          `-${formatTime(Math.abs(delta) * 3600000)}/day vs ${prevDate.toLocaleDateString([], { month: "long" })} ↓`;
         elements.monthTrendValue.classList.add("mtr-down");
       }
     }
@@ -2098,19 +2256,55 @@ function initParallax() {
 
 // ---- POMODORO TIME SETTINGS ------------------------------------------------
 
-function initPomoSettings() {
-  const fi = document.getElementById("pomoFocusInput");
-  const bi = document.getElementById("pomoBreakInput");
-  if (!fi || !bi) return;
-  fi.value = state.pomo.focusMin;
-  bi.value = state.pomo.breakMin;
+// Read h/m/s inputs → total seconds
+// Float input ID is hId with trailing "H" replaced by "Float" (e.g. "pomoFocusH" → "pomoFocusFloat")
+function _floatId(hId) { return hId.replace(/H$/, "Float"); }
 
-  function apply() {
-    const f = parseInt(fi.value, 10), b = parseInt(bi.value, 10);
-    if (f > 0 && f <= 99) state.pomo.focusMin = f;
-    if (b > 0 && b <= 99) state.pomo.breakMin = b;
+// Read time inputs → total seconds, respecting current format
+function _readTimeEntry(hId, mId, sId, minSec, maxSec) {
+  if (state.timeFormat === "hr") {
+    const floatEl = document.getElementById(_floatId(hId));
+    const hrs = Math.max(0, parseFloat(floatEl?.value || "0") || 0);
+    return Math.max(minSec, Math.min(maxSec, Math.round(hrs * 3600)));
+  }
+  const h = Math.max(0, parseInt(document.getElementById(hId)?.value  || "0", 10) || 0);
+  const m = Math.max(0, parseInt(document.getElementById(mId)?.value  || "0", 10) || 0);
+  const s = Math.max(0, parseInt(document.getElementById(sId)?.value  || "0", 10) || 0);
+  return Math.max(minSec, Math.min(maxSec, h * 3600 + m * 60 + s));
+}
+
+// Populate all inputs (float + H/M/S) from total seconds
+function _writeTimeEntry(hId, mId, sId, totalSec) {
+  const safeSec = Math.max(0, Math.floor(totalSec || 0));
+  const h = Math.floor(safeSec / 3600);
+  const m = Math.floor((safeSec % 3600) / 60);
+  const s = safeSec % 60;
+
+  // Always write H/M/S for when format changes
+  const hEl = document.getElementById(hId), mEl = document.getElementById(mId), sEl = document.getElementById(sId);
+  if (hEl) hEl.value = h;
+  if (mEl) { mEl.max = "59"; mEl.value = m; }
+  if (sEl) sEl.value = s;
+
+  // Also write the float input
+  const floatEl = document.getElementById(_floatId(hId));
+  if (floatEl) floatEl.value = (safeSec / 3600).toFixed(2);
+}
+
+function initPomoSettings() {
+  const breakCheck = document.getElementById("pomoBreakCheck");
+  const breakEntry = document.getElementById("pomoBreakEntry");
+
+  function syncBreakUI() {
+    const enabled = state.pomo.breakEnabled;
+    if (breakEntry) breakEntry.classList.toggle("disabled", !enabled);
+    if (breakCheck) breakCheck.checked = enabled;
+  }
+
+  function applyFocusInputs() {
+    const sec = _readTimeEntry("pomoFocusH","pomoFocusM","pomoFocusS", 1, 86399);
+    state.pomo.focusSec = sec;
     savePomoSettings();
-    // If timer is running in focus phase, reschedule to use new time
     if (state.pomo.enabled && state.pomo.phase === "focus" && state.pomo.endTime) {
       const elapsed = pomoFocusMs() - Math.max(0, state.pomo.endTime - Date.now());
       state.pomo.endTime = Date.now() + Math.max(0, pomoFocusMs() - elapsed);
@@ -2118,15 +2312,146 @@ function initPomoSettings() {
     updatePomoDisplay();
   }
 
-  fi.addEventListener("change", apply);
-  bi.addEventListener("change", apply);
-  // Sync inputs when pomo section is toggled visible
-  const observer = new MutationObserver(() => {
-    fi.value = state.pomo.focusMin;
-    bi.value = state.pomo.breakMin;
-  });
+  function applyBreakInputs() {
+    const sec = _readTimeEntry("pomoBreakH","pomoBreakM","pomoBreakS", 0, 86399);
+    state.pomo.breakSec = sec;
+    state.pomo.breakEnabled = sec > 0 && (breakCheck?.checked ?? true);
+    savePomoSettings();
+    syncBreakUI();
+    updatePomoDisplay();
+  }
+
+  if (breakCheck) {
+    breakCheck.addEventListener("change", () => {
+      state.pomo.breakEnabled = breakCheck.checked;
+      savePomoSettings();
+      syncBreakUI();
+      updatePomoDisplay();
+    });
+  }
+
+  ["pomoFocusH","pomoFocusM","pomoFocusS","pomoFocusFloat"].forEach(id =>
+    document.getElementById(id)?.addEventListener("change", applyFocusInputs));
+  ["pomoBreakH","pomoBreakM","pomoBreakS","pomoBreakFloat"].forEach(id =>
+    document.getElementById(id)?.addEventListener("change", applyBreakInputs));
+
+  // Sync inputs when pomo section becomes visible
   const section = document.getElementById("pomoSection");
-  if (section) observer.observe(section, { attributes: true, attributeFilter: ["hidden"] });
+  if (section) {
+    new MutationObserver(() => {
+      _writeTimeEntry("pomoFocusH","pomoFocusM","pomoFocusS", state.pomo.focusSec);
+      _writeTimeEntry("pomoBreakH","pomoBreakM","pomoBreakS", state.pomo.breakSec);
+      syncBreakUI();
+    }).observe(section, { attributes: true, attributeFilter: ["hidden"] });
+  }
+
+  // Initial sync
+  _writeTimeEntry("pomoFocusH","pomoFocusM","pomoFocusS", state.pomo.focusSec);
+  _writeTimeEntry("pomoBreakH","pomoBreakM","pomoBreakS", state.pomo.breakSec);
+  syncBreakUI();
+}
+
+// ---- TIME FORMAT -----------------------------------------------------------
+
+function applyTimeFormat(fmt) {
+  if (!["hr","hr-min","hr-min-sec"].includes(fmt)) fmt = "hr-min";
+  state.timeFormat = fmt;
+  localStorage.setItem(TIME_FORMAT_KEY, fmt);
+
+  const isHr      = fmt === "hr";
+  const isHrMin   = fmt === "hr-min";
+  const isHMS     = fmt === "hr-min-sec";
+
+  // Float input (hr mode only): show the decimal-hours input
+  document.querySelectorAll(".pomo-float-input, .pomo-float-unit").forEach(el => {
+    el.hidden = !isHr;
+  });
+
+  // H inputs+units: hidden in "hr" mode (float handles it)
+  document.querySelectorAll(".pomo-h-input, .pomo-h-unit").forEach(el => {
+    el.hidden = isHr;
+  });
+
+  // M inputs+units: hidden in "hr" mode (float covers the whole value)
+  document.querySelectorAll(".pomo-m-input, .pomo-m-unit").forEach(el => {
+    el.hidden = isHr;
+  });
+
+  // S inputs+units: only in "hr-min-sec" mode
+  document.querySelectorAll(".pomo-s-input, .pomo-s-unit").forEach(el => {
+    el.hidden = !isHMS;
+  });
+
+  // Sync radio buttons
+  document.querySelectorAll('input[name="timeFmt"]').forEach(r => {
+    r.checked = r.value === fmt;
+  });
+
+  // Goal modal: show float row vs H/M/S row
+  const goalFloatRow = document.getElementById("goalFloatRow");
+  const goalHMRow    = document.getElementById("goalHMRow");
+  const goalSInput   = document.querySelectorAll(".goal-s-input, .goal-s-unit");
+  if (goalFloatRow) goalFloatRow.hidden = !isHr;
+  if (goalHMRow)    goalHMRow.hidden    = isHr;
+  goalSInput.forEach(el => { el.hidden = !isHMS; });
+
+  // Update hint text to match format
+  const hint = document.getElementById("goalModalHint");
+  if (hint) {
+    if (isHr)    hint.textContent = "How many hours (decimal) do you aim to complete today?";
+    else if (isHMS) hint.textContent = "How many hours, minutes and seconds do you aim to complete today?";
+    else         hint.textContent = "How many hours and minutes do you aim to complete today?";
+  }
+
+  // Re-map current focus/break durations into the newly selected input layout.
+  _writeTimeEntry("pomoFocusH","pomoFocusM","pomoFocusS", state.pomo.focusSec);
+  _writeTimeEntry("pomoBreakH","pomoBreakM","pomoBreakS", state.pomo.breakSec);
+  _writeTimeEntry("rovFocusH","rovFocusM","rovFocusS", state.pomo.focusSec);
+  _writeTimeEntry("rovBreakH","rovBreakM","rovBreakS", state.pomo.breakSec);
+
+  refreshAll();
+}
+
+// ---- SETTINGS PANEL --------------------------------------------------------
+
+function initSettings() {
+  const btn   = document.getElementById("settingsBtn");
+  const panel = document.getElementById("settingsPanel");
+  if (!btn || !panel) return;
+
+  function openPanel()  { panel.hidden = false; btn.classList.add("active"); }
+  function closePanel() { panel.hidden = true;  btn.classList.remove("active"); }
+  function isPanelOpen(){ return !panel.hidden; }
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    isPanelOpen() ? closePanel() : openPanel();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (isPanelOpen() && !panel.contains(e.target) && e.target !== btn) closePanel();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && isPanelOpen()) closePanel();
+  });
+
+  // Theme dots
+  document.querySelectorAll(".theme-dot").forEach(dot => {
+    dot.addEventListener("click", () => {
+      applyTheme(dot.dataset.theme);
+    });
+  });
+
+  // Time format radios
+  document.querySelectorAll('input[name="timeFmt"]').forEach(radio => {
+    radio.addEventListener("change", () => {
+      if (radio.checked) applyTimeFormat(radio.value);
+    });
+  });
+
+  // Apply initial format (show/hide inputs + set radio)
+  applyTimeFormat(state.timeFormat);
 }
 
 // ---- KEYBOARD --------------------------------------------------------------
@@ -2348,6 +2673,12 @@ function init() {
   if (goalInput) goalInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") { e.preventDefault(); goalOk && goalOk.click(); }
   });
+  // Enter key support for H/M/S goal inputs
+  ["goalModalH","goalModalM","goalModalS"].forEach(id => {
+    document.getElementById(id)?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); goalOk && goalOk.click(); }
+    });
+  });
   document.getElementById("goalModal")?.addEventListener("click", (e) => {
     if (e.target === e.currentTarget) closeGoalModal();
   });
@@ -2367,6 +2698,7 @@ function init() {
   initParallax();
   initCanvas();
   initKeyboard();
+  initSettings();
   initPomoSettings();
   initFocusOverlay();
   initReadingOverlay();
