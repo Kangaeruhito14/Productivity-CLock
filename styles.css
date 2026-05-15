@@ -589,21 +589,13 @@ p {
   color: var(--muted);
 }
 
-.status-low {
-  background: var(--accent-bg);
-}
-
-.status-ok {
-  background: rgba(242, 193, 78, 0.22);
-}
-
-.status-good {
-  background: var(--teal-bg);
-}
-
-.status-positive {
-  background: var(--green-bg);
-}
+/* ── Calendar-cell status backgrounds (6 tiers) ── */
+.status-low       { background: var(--accent-bg); }
+.status-avg       { background: rgba(242, 193, 78, 0.22); }
+.status-good      { background: var(--teal-bg); }
+.status-perfect   { background: rgba(61, 184, 200, 0.22); }
+.status-excellent { background: rgba(112, 64, 168, 0.16); }
+.status-premium   { background: rgba(196, 155, 60, 0.28); }
 
 .day-detail {
   display: flex;
@@ -647,25 +639,55 @@ p {
   color: var(--ink);
 }
 
+/* ── Detail-pill colours for all 6 tiers ── */
 .detail-pill.status-low {
   background: var(--accent-bg);
   color: var(--accent-strong);
 }
-
-.detail-pill.status-ok {
+.detail-pill.status-avg {
   background: rgba(242, 193, 78, 0.25);
   color: #8a6400;
 }
-
 .detail-pill.status-good {
   background: var(--teal-bg);
   color: var(--teal);
 }
-
-.detail-pill.status-positive {
-  background: var(--green-bg);
-  color: var(--green);
+.detail-pill.status-perfect {
+  background: rgba(61, 184, 200, 0.18);
+  color: #1a7f94;
 }
+.detail-pill.status-excellent {
+  background: rgba(112, 64, 168, 0.14);
+  color: #7040a8;
+}
+.detail-pill.status-premium {
+  background: rgba(196, 155, 60, 0.22);
+  color: #8a6800;
+}
+
+/* ── History-list status label colours ── */
+.history-status {
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  display: inline-block;
+  margin-top: 3px;
+}
+.history-status.status-low       { background: var(--accent-bg);              color: var(--accent-strong); }
+.history-status.status-avg       { background: rgba(242,193,78,0.22);         color: #8a6400; }
+.history-status.status-good      { background: var(--teal-bg);                color: var(--teal); }
+.history-status.status-perfect   { background: rgba(61,184,200,0.18);         color: #1a7f94; }
+.history-status.status-excellent { background: rgba(112,64,168,0.14);         color: #7040a8; }
+.history-status.status-premium   { background: rgba(196,155,60,0.22);         color: #8a6800; }
+
+/* ── Today status text colour (stat-value / summary-value elements only) ── */
+.stat-value.status-low,    .summary-value.status-low    { color: var(--accent-strong, #a8432e); background: none; }
+.stat-value.status-avg,    .summary-value.status-avg    { color: #8a6400; background: none; }
+.stat-value.status-good,   .summary-value.status-good   { color: var(--teal); background: none; }
+.stat-value.status-perfect,.summary-value.status-perfect{ color: #1a7f94; background: none; }
+.stat-value.status-excellent,.summary-value.status-excellent { color: #7040a8; background: none; }
+.stat-value.status-premium,.summary-value.status-premium { color: #8a6800; background: none; }
 
 .calendar-insights {
   display: grid;
@@ -799,12 +821,14 @@ p {
   background: var(--card);
   border: 1px solid var(--stroke);
   border-radius: 12px;
-  padding: 8px 14px;
+  padding: 8px 12px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
   transform: translate(-50%, calc(-100% - 10px));
-  white-space: nowrap;
+  white-space: normal;
+  max-width: 120px;
+  text-align: center;
   z-index: 10;
 }
 .chart-tooltip::after {
@@ -1936,22 +1960,51 @@ html[data-theme="dark"] .modal-warn.modal-warn-locked {
 /* ============================================================
    CONFETTI
    ============================================================ */
-.confetti-dot {
+/* ── Premium Confetti ─────────────────────────────────────────── */
+.confetti-piece {
   position: fixed;
   pointer-events: none;
-  z-index: 9999;
-  border-radius: 2px;
-  animation: confettiFly 0.9s cubic-bezier(0, 0.88, 0.56, 1) forwards;
+  z-index: 10001;
+  animation: confettiFall var(--dur, 2.6s) cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0s) both;
+  will-change: transform, opacity;
 }
-@keyframes confettiFly {
-  from {
-    transform: translate(-50%, -50%) rotate(0deg) scale(1);
-    opacity: 1;
-  }
-  to {
-    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) rotate(var(--rot)) scale(0.4);
-    opacity: 0;
-  }
+@keyframes confettiFall {
+  0%   { transform: translate(-50%, -50%) rotate(0deg) scale(1); opacity: 1; }
+  75%  { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) rotate(var(--rot)) scale(var(--sf, 0.6)); opacity: 0; }
+}
+
+/* ── Goal celebration toast ───────────────────────────────────── */
+.goal-toast {
+  position: fixed;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10002;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 30px 14px 22px;
+  border-radius: 50px;
+  background: linear-gradient(135deg, var(--gold, #c49b3c) 0%, #e8b84b 100%);
+  color: #1a1200;
+  font: 700 1.05rem "Space Grotesk", sans-serif;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.38), 0 2px 8px rgba(0,0,0,0.18);
+  pointer-events: none;
+  animation: toastPop 3.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.goal-toast-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+@keyframes toastPop {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(24px) scale(0.82); }
+  14%  { opacity: 1; transform: translateX(-50%) translateY(-4px) scale(1.04); }
+  22%  { transform: translateX(-50%) translateY(0px) scale(1); }
+  72%  { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-12px) scale(0.94); }
 }
 
 /* ============================================================
@@ -3073,3 +3126,19 @@ html[data-theme="dusk"] .hero-copy {
   }
   .is-dimmed .split-ring-wrap { display: none; }
 }
+
+/* ── Dark-mode overrides for fixed-colour tier classes ── */
+html[data-theme="dark"] .detail-pill.status-perfect,
+html[data-theme="dark"] .history-status.status-perfect,
+html[data-theme="dark"] .stat-value.status-perfect,
+html[data-theme="dark"] .summary-value.status-perfect   { color: #3dd8e8; }
+
+html[data-theme="dark"] .detail-pill.status-excellent,
+html[data-theme="dark"] .history-status.status-excellent,
+html[data-theme="dark"] .stat-value.status-excellent,
+html[data-theme="dark"] .summary-value.status-excellent  { color: #b87aca; }
+
+html[data-theme="dark"] .detail-pill.status-premium,
+html[data-theme="dark"] .history-status.status-premium,
+html[data-theme="dark"] .stat-value.status-premium,
+html[data-theme="dark"] .summary-value.status-premium    { color: #d4a740; }
