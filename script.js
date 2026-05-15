@@ -1,6 +1,7 @@
 const STORAGE_KEY     = "productivity-clock-data-v1";
 const GOAL_KEY        = "productivity-clock-goal-v1";
-const GOAL_DATE_KEY   = "productivity-clock-goal-date-v1";
+const GOAL_DATE_KEY        = "productivity-clock-goal-date-v1";
+const GOAL_CELEBRATED_KEY  = "productivity-clock-goal-celebrated-v1";
 const TOUR_KEY        = "productivity-clock-tour-v1";
 const THEME_KEY       = "productivity-clock-theme-v1";
 const POMO_KEY        = "productivity-clock-pomo-v1";
@@ -472,7 +473,6 @@ const state = {
   selectedDateKey: getLocalDateKey(new Date()),
   data: loadData(),
   goal: loadGoal(),
-  goalCelebrated: false,
   timeFormat: loadTimeFormat(),
   pomo: { enabled: false, phase: "focus", endTime: null, cycles: 0, ...loadPomoSettings() },
 };
@@ -631,11 +631,17 @@ function unlockBodyScroll(source) {
   }
 }
 
-function ratingForHours(h) {
-  if (h < 2)  return { label: "Below average", className: "status-low" };
-  if (h < 5)  return { label: "Ok",            className: "status-ok" };
-  if (h < 10) return { label: "Good",          className: "status-good" };
-  return             { label: "Positive",      className: "status-positive" };
+function ratingForHours(h, goal) {
+  // goal defaults to the current daily goal (or 8h if unset)
+  const g = (goal > 0 ? goal : currentGoalHours());
+  // Tier thresholds are all fractions of the daily goal.
+  // Note: goals >= ~12h make Premium (2×) unreachable in a 24h day — by design.
+  if (h >= g * 2)   return { label: "Premium",       className: "status-premium" };
+  if (h >= g * 1.5) return { label: "Excellent",     className: "status-excellent" };
+  if (h >= g)       return { label: "Perfect",       className: "status-perfect" };
+  if (h >= g / 2)   return { label: "Good",          className: "status-good" };
+  if (h >= g / 4)   return { label: "Average",       className: "status-avg" };
+  return                    { label: "Below average", className: "status-low" };
 }
 
 // ---- TIME TRACKING ---------------------------------------------------------
@@ -702,16 +708,19 @@ function refreshStreak() {
 
 function refreshGoalBar() {
   if (!elements.goalFill || !elements.goalEditBtn) return;
-  const ms  = getLiveDayMs(getLocalDateKey(new Date()));
+  const ms   = getLiveDayMs(getLocalDateKey(new Date()));
   const goal = currentGoalHours();
-  const pct = Math.min((hoursFromMs(ms) / goal) * 100, 100);
-  elements.goalFill.style.width = `${pct.toFixed(1)}%`;
+  const pct  = Math.min((hoursFromMs(ms) / goal) * 100, 100);
+  elements.goalFill.style.width    = `${pct.toFixed(1)}%`;
   elements.goalEditBtn.textContent = formatTime(goal * 3600000);
-  if (pct >= 100 && !state.goalCelebrated) {
-    state.goalCelebrated = true;
-    burstConfetti(elements.goalFill);
-  } else if (pct < 90) {
-    state.goalCelebrated = false;
+
+  const todayKey       = getLocalDateKey(new Date());
+  const celebratedDate = localStorage.getItem(GOAL_CELEBRATED_KEY) || "";
+
+  if (pct >= 100 && celebratedDate !== todayKey) {
+    // First time crossing 100% today — celebrate once and persist so reloads don't re-fire
+    localStorage.setItem(GOAL_CELEBRATED_KEY, todayKey);
+    burstConfetti();
   }
 }
 
@@ -832,7 +841,7 @@ function doSaveGoal() {
     state.goal = decimalHours;
     saveGoal(decimalHours);
     saveGoalDate(getLocalDateKey(new Date()));
-    state.goalCelebrated = false;
+    localStorage.removeItem(GOAL_CELEBRATED_KEY); // allow re-celebration if new goal is hit
     refreshAll();
   }
   closeGoalModal();
@@ -840,28 +849,73 @@ function doSaveGoal() {
 
 // ---- CONFETTI --------------------------------------------------------------
 
-function burstConfetti(anchor) {
-  const colors = ["#f2c14e","#f17c58","#2f8f9d","#4c956c","#ef6a3f","#c3e6cb"];
-  const rect = anchor.getBoundingClientRect();
-  const cx = rect.left + rect.width * (Math.random() * 0.5 + 0.25);
-  const cy = rect.top + rect.height / 2;
-  for (let i = 0; i < 48; i++) {
-    const dot = document.createElement("span");
-    dot.className = "confetti-dot";
-    const angle = (i / 48) * Math.PI * 2 + Math.random() * 0.4;
-    const speed = Math.random() * 180 + 60;
-    dot.style.setProperty("--tx", `${Math.cos(angle) * speed}px`);
-    dot.style.setProperty("--ty", `${Math.sin(angle) * speed - 100}px`);
-    dot.style.setProperty("--rot", `${Math.random() * 720 - 360}deg`);
-    dot.style.left = `${cx}px`;
-    dot.style.top  = `${cy}px`;
-    dot.style.background = colors[i % colors.length];
-    dot.style.animationDelay = `${Math.random() * 180}ms`;
-    dot.style.width = dot.style.height = `${Math.random() * 7 + 4}px`;
-    dot.style.borderRadius = Math.random() > 0.5 ? "50%" : "3px";
-    document.body.appendChild(dot);
-    dot.addEventListener("animationend", () => dot.remove());
+function burstConfetti() {
+  const VW = window.innerWidth, VH = window.innerHeight;
+  const colors = [
+    "#f2c14e","#f5d76e","#e8b84b",   // gold family
+    "#f17c58","#ef6a3f","#e85d3a",   // warm accent
+    "#2f8f9d","#3db8c8","#56cfe1",   // teal family
+    "#4c956c","#57b87a","#c3e6cb",   // green
+    "#e2a8e4","#b87aca","#ffffff",   // purple + white
+  ];
+
+  function spawn(x, y, tx, ty, size, isRibbon, color, delay, dur) {
+    const p = document.createElement("span");
+    p.className = "confetti-piece";
+    const rot = Math.random() * 900 - 450;
+    p.style.setProperty("--tx", `${tx}px`);
+    p.style.setProperty("--ty", `${ty}px`);
+    p.style.setProperty("--rot", `${rot}deg`);
+    p.style.setProperty("--dur", `${dur}s`);
+    p.style.setProperty("--delay", `${delay}s`);
+    p.style.setProperty("--sf", `${0.5 + Math.random() * 0.4}`);
+    p.style.left   = `${x}px`;
+    p.style.top    = `${y}px`;
+    p.style.background = color;
+    if (isRibbon) {
+      p.style.width  = `${size * 3.5}px`;
+      p.style.height = `${size * 0.9}px`;
+      p.style.borderRadius = "2px";
+    } else {
+      p.style.width  = `${size}px`;
+      p.style.height = `${size}px`;
+      p.style.borderRadius = Math.random() > 0.45 ? "50%" : "3px";
+    }
+    document.body.appendChild(p);
+    p.addEventListener("animationend", () => p.remove(), { once: true });
   }
+
+  // ── Phase 1: Burst from viewport center-top (60 pieces, immediate) ──
+  const bx = VW / 2, by = VH * 0.12;
+  for (let i = 0; i < 60; i++) {
+    const angle = (Math.random() * Math.PI * 2);
+    const speed = 220 + Math.random() * 320;
+    const gravity = VH * 0.55 + Math.random() * VH * 0.35;
+    const tx = Math.cos(angle) * speed * (0.7 + Math.random() * 0.6);
+    const ty = Math.sin(angle) * speed * 0.5 + gravity;
+    const size = 6 + Math.random() * 10;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const ribbon = Math.random() > 0.42;
+    spawn(bx, by, tx, ty, size, ribbon, color, Math.random() * 0.18, 2.2 + Math.random() * 0.8);
+  }
+
+  // ── Phase 2: Cascade rain from random top positions (80 pieces, slight delay) ──
+  for (let i = 0; i < 80; i++) {
+    const x  = Math.random() * VW;
+    const tx = (Math.random() - 0.5) * 180;
+    const ty = VH * 0.65 + Math.random() * VH * 0.42;
+    const size = 5 + Math.random() * 11;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const ribbon = Math.random() > 0.38;
+    spawn(x, -10, tx, ty, size, ribbon, color, 0.08 + Math.random() * 0.55, 2.4 + Math.random() * 1.2);
+  }
+
+  // ── Goal toast ──
+  const toast = document.createElement("div");
+  toast.className = "goal-toast";
+  toast.innerHTML = '<span class="goal-toast-icon">★</span> Daily Goal Reached!';
+  document.body.appendChild(toast);
+  toast.addEventListener("animationend", () => toast.remove(), { once: true });
 }
 
 // ---- CARD SHIMMER ----------------------------------------------------------
@@ -1395,14 +1449,20 @@ function buildClockTicks() {
 // ---- DISPLAY / SUMMARY -----------------------------------------------------
 
 function refreshTodaySummary() {
-  const ms = getLiveDayMs(getLocalDateKey(new Date()));
-  const h  = hoursFromMs(ms), r = ratingForHours(h);
+  const ms   = getLiveDayMs(getLocalDateKey(new Date()));
+  const goal = currentGoalHours();
+  const h    = hoursFromMs(ms), r = ratingForHours(h, goal);
   elements.todayTotal.textContent         = formatTime(ms);
   elements.todayPointsSummary.textContent = formatTime(ms);
-  elements.todayStatusSummary.textContent = r.label;
   elements.todayHours.textContent         = formatTime(ms);
   elements.todayPoints.textContent        = formatTime(ms);
-  elements.todayRating.textContent        = r.label;
+  // Status label + colour class on both display elements
+  [elements.todayStatusSummary, elements.todayRating].forEach(el => {
+    if (!el) return;
+    el.textContent = r.label;
+    el.className = el.className.replace(/\bstatus-\S+/g, "").trim();
+    el.classList.add(r.className);
+  });
 }
 
 function updateSessionDisplay() {
@@ -1431,9 +1491,9 @@ function refreshHistory() {
   const today = new Date(), items = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(today); d.setDate(today.getDate() - i);
-    const key = getLocalDateKey(d), ms = getLiveDayMs(key), h = hoursFromMs(ms), r = ratingForHours(h);
+    const key = getLocalDateKey(d), ms = getLiveDayMs(key), h = hoursFromMs(ms), r = ratingForHours(h, currentGoalHours());
     const labels = (state.data.labels && state.data.labels[key]) || [];
-    items.push({ key, hours: formatTime(ms), label: r.label, tags: labels });
+    items.push({ key, hours: formatTime(ms), label: r.label, className: r.className, tags: labels });
   }
   elements.historyList.innerHTML = "";
   items.forEach((item) => {
@@ -1445,6 +1505,7 @@ function refreshHistory() {
 
     const status = document.createElement("span");
     status.textContent = item.label;
+    status.className = `history-status ${item.className}`;
     left.append(status);
 
     if (item.tags.length) {
@@ -1483,7 +1544,7 @@ function renderCalendar() {
     else if (dayNum > daysInMonth) { displayNum = dayNum - daysInMonth; cell.classList.add("inactive"); }
     else {
       dateKey = `${year}-${String(mi + 1).padStart(2,"0")}-${String(dayNum).padStart(2,"0")}`;
-      const ms = getLiveDayMs(dateKey), h = hoursFromMs(ms), r = ratingForHours(h);
+      const ms = getLiveDayMs(dateKey), h = hoursFromMs(ms), r = ratingForHours(h, currentGoalHours());
       if (h > 0) cell.classList.add(r.className);
       if (dateKey === getLocalDateKey(new Date())) cell.classList.add("today");
       if (dateKey === state.selectedDateKey) cell.classList.add("selected");
@@ -1497,7 +1558,7 @@ function renderCalendar() {
 }
 
 function updateDayDetail() {
-  const key = state.selectedDateKey, ms = getLiveDayMs(key), h = hoursFromMs(ms), r = ratingForHours(h);
+  const key = state.selectedDateKey, ms = getLiveDayMs(key), h = hoursFromMs(ms), r = ratingForHours(h, currentGoalHours());
   const [y, m, d] = key.split("-").map(Number), date = new Date(y, m - 1, d);
   elements.selectedDateLabel.textContent = date.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
   elements.selectedDateHours.textContent = formatTime(ms);
@@ -1657,6 +1718,7 @@ function renderMonthChart() {
 
   // Selected day/week hours (from the month currently in view)
   const goal = state.goal > 0 ? state.goal : 8;
+  const gold  = cs.getPropertyValue("--gold").trim() || "#c49b3c";
   const [sy, sm, sd] = state.selectedDateKey.split("-").map(Number);
   const selectedDate = new Date(sy, (sm || 1) - 1, sd || 1);
   const selectedInViewedMonth = selectedDate.getFullYear() === year && selectedDate.getMonth() === mi;
@@ -1665,18 +1727,21 @@ function renderMonthChart() {
 
   const dayKey = `${year}-${String(mi + 1).padStart(2,"0")}-${String(focusDay).padStart(2,"0")}`;
   const dayH = hoursFromMs(getLiveDayMs(dayKey));
-  const dayPct = dayH / goal; // >1 means over goal
+  // Cap at exactly 1.0 for ring display — over-goal shown via star badge, not a second arc
+  const dayPct    = goal > 0 ? Math.min(dayH / goal, 1) : 0;
+  const isOverGoal = goal > 0 && dayH > goal;
+  const dayRingColor = (dayPct >= 1) ? gold : accent;  // gold ring when goal met
 
-  // Week's hours for selected day (Sun→selected day)
+  // Week: each day's contribution capped at its own daily goal to prevent bleed-over
   const wStart = new Date(focusDate); wStart.setDate(focusDate.getDate() - focusDate.getDay()); wStart.setHours(0,0,0,0);
   let weekH = 0;
   for (let i = 0; i < 7; i++) {
     const d = new Date(wStart); d.setDate(wStart.getDate() + i);
     if (d > focusDate) break;
     const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    weekH += hoursFromMs(getLiveDayMs(k));
+    weekH += Math.min(hoursFromMs(getLiveDayMs(k)), goal); // cap each day at goal
   }
-  const weekPct = weekH / (goal * 7);
+  const weekPct = Math.min(weekH / (goal * 7), 1);
 
   const outerR = ringSize * 0.34;
   const outerW = ringSize * 0.090;
@@ -1684,33 +1749,36 @@ function renderMonthChart() {
   const innerW = outerW * 0.65;
   const clearR = innerR - innerW / 2 - 3; // safe radius for center text
 
-  // Draw one arc ring
+  // Draw one arc ring — capped at 100%, no second-arc hack
   function drawRing(r, w, pct, color) {
     const trackColor = isDark ? `rgba(255,255,255,${trackA})` : `rgba(0,0,0,${trackA})`;
-    // Background track
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.strokeStyle = trackColor; ctx.lineWidth = w; ctx.lineCap = "butt"; ctx.stroke();
     if (pct <= 0) return;
-    // Progress arc (clockwise from 12 o'clock)
-    const end = -Math.PI / 2 + Math.min(pct, 1) * Math.PI * 2;
+    const end = -Math.PI / 2 + pct * Math.PI * 2;
     ctx.save();
     ctx.shadowColor = hexToRgba(color, 0.55); ctx.shadowBlur = w * 2;
     ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, end);
     ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = "round"; ctx.stroke();
     ctx.restore();
-    // Over-goal second pass (teal glow overlay)
-    if (pct > 1) {
-      const end2 = -Math.PI / 2 + Math.min(pct - 1, 1) * Math.PI * 2;
-      ctx.save();
-      ctx.shadowColor = hexToRgba(teal, 0.60); ctx.shadowBlur = w;
-      ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, end2);
-      ctx.strokeStyle = hexToRgba(teal, 0.80); ctx.lineWidth = w * 0.55; ctx.lineCap = "round"; ctx.stroke();
-      ctx.restore();
-    }
   }
 
-  drawRing(outerR, outerW, dayPct, accent);
-  drawRing(innerR, innerW, weekPct,  teal);
+  drawRing(outerR, outerW, dayPct,  dayRingColor);
+  drawRing(innerR, innerW, weekPct, teal);
+
+  // ★ Star badge at 12 o'clock when over goal
+  if (isOverGoal) {
+    const starX = cx, starY = cy - outerR;
+    const starR  = outerW * 0.88;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(starX, starY, starR + 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = isDark ? "#0e1320" : "#f6f0e8";
+    ctx.fill();
+    ctx.font = `${Math.round(starR * 1.55)}px sans-serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("★", starX, starY + 0.5);
+    ctx.restore();
+  }
 
   // Center text — all positions kept within clearR
   const bigFz  = Math.max(13, Math.round(clearR * 0.76));
@@ -1726,19 +1794,36 @@ function renderMonthChart() {
   ctx.font = `500 ${lblFz}px "Space Grotesk", sans-serif`;
   ctx.fillText("focused", cx, cy + clearR * 0.22);
   ctx.font = `400 ${sub1Fz}px "Space Grotesk", sans-serif`;
-  ctx.fillText(`${Math.min(Math.round(dayPct * 100), 999)}% of ${formatTime(goal * 3600000)}`, cx, cy + clearR * 0.60);
+  if (isOverGoal) {
+    // Show bonus time instead of a confusing >100% percentage
+    const bonusMs = (dayH - goal) * 3600000;
+    ctx.fillStyle = gold;
+    ctx.fillText(`★ +${formatTime(bonusMs)} bonus`, cx, cy + clearR * 0.60);
+  } else {
+    ctx.fillText(`${Math.round((dayH / goal) * 100)}% of ${formatTime(goal * 3600000)}`, cx, cy + clearR * 0.60);
+  }
   ctx.textBaseline = "alphabetic";
 
-  // Legend (tiny dots + labels at bottom)
-  const legY  = H - 9;
+  // Legend — dot colour matches the actual ring colour currently drawn
+  const legY   = H - 9;
   const legDot = Math.max(3.5, ringSize * 0.030);
+  const legFz  = Math.round(ringSize * 0.062);
   ctx.save();
-  ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(cx - RING_W * 0.20, legY, legDot, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = muted; ctx.font = `400 ${Math.round(ringSize * 0.062)}px "Space Grotesk", sans-serif`;
+  ctx.font = `400 ${legFz}px "Space Grotesk", sans-serif`;
   ctx.textAlign = "left"; ctx.textBaseline = "middle";
+
+  // Day dot — uses dayRingColor (gold when goal met, accent otherwise)
+  ctx.fillStyle = dayRingColor;
+  ctx.beginPath(); ctx.arc(cx - RING_W * 0.20, legY, legDot, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = muted;
   ctx.fillText("Day", cx - RING_W * 0.20 + legDot + 3, legY);
-  ctx.fillStyle = teal; ctx.beginPath(); ctx.arc(cx + RING_W * 0.04, legY, legDot, 0, Math.PI * 2); ctx.fill();
+
+  // Week dot — always teal
+  ctx.fillStyle = teal;
+  ctx.beginPath(); ctx.arc(cx + RING_W * 0.04, legY, legDot, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = muted;
   ctx.fillText("Week", cx + RING_W * 0.04 + legDot + 3, legY);
+
   ctx.textBaseline = "alphabetic";
   ctx.restore();
 
@@ -1775,21 +1860,24 @@ function renderMonthChart() {
     const cy2 = HDR + row * (ch + GAP);
 
     const key = `${year}-${String(mi+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-    const h   = hoursFromMs(getLiveDayMs(key));
+    const h         = hoursFromMs(getLiveDayMs(key));
     const isToday   = d === todayD;
     const isFuture  = isCurrentMonth && d > now.getDate();
     const isHovered = d === gridHoverDay;
-    const intensity = Math.min(h / goal, 1);
+    const cellOver  = goal > 0 && h > goal;            // over-goal day
+    const intensity = Math.min(h / goal, 1);            // always capped at 1.0
 
-    // ── Cell background ──
+    // ── Cell background — over-goal days use gold tint, not weird saturation overflow ──
     ctx.save();
     if (isToday) {
-      ctx.shadowColor = hexToRgba(teal, 0.50); ctx.shadowBlur = 7;
+      ctx.shadowColor = hexToRgba(cellOver ? gold : teal, 0.50); ctx.shadowBlur = 7;
       ctx.fillStyle = h > 0
-        ? hexToRgba(teal, 0.18 + intensity * 0.62)
+        ? hexToRgba(cellOver ? gold : teal, 0.18 + intensity * 0.62)
         : hexToRgba(teal, 0.09);
     } else if (h > 0) {
-      ctx.fillStyle = hexToRgba(accent, 0.10 + intensity * 0.80);
+      ctx.fillStyle = cellOver
+        ? hexToRgba(gold, 0.22 + 0.68)   // solid gold tint for over-goal
+        : hexToRgba(accent, 0.10 + intensity * 0.80);
     } else if (isFuture) {
       ctx.fillStyle = isDark ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.025)";
     } else {
@@ -1798,9 +1886,11 @@ function renderMonthChart() {
     roundRect(ctx, cx2, cy2, cw, ch, cr); ctx.fill();
 
     // ── Border ring ──
-    if (isToday || isHovered) {
-      ctx.strokeStyle = isToday ? hexToRgba(teal, 0.88) : hexToRgba(accent, 0.65);
-      ctx.lineWidth = 1.5;
+    if (isToday || isHovered || cellOver) {
+      ctx.strokeStyle = cellOver
+        ? hexToRgba(gold, 0.90)
+        : isToday ? hexToRgba(teal, 0.88) : hexToRgba(accent, 0.65);
+      ctx.lineWidth = cellOver ? 1.8 : 1.5;
       roundRect(ctx, cx2 + 0.75, cy2 + 0.75, cw - 1.5, ch - 1.5, cr);
       ctx.stroke();
     }
@@ -1808,9 +1898,9 @@ function renderMonthChart() {
 
     // ── Day number ──
     const fSz = Math.max(7, Math.round(Math.min(cw, ch) * 0.38));
-    ctx.font = `${isToday ? 700 : 400} ${fSz}px "Space Grotesk", sans-serif`;
+    ctx.font = `${isToday || cellOver ? 700 : 400} ${fSz}px "Space Grotesk", sans-serif`;
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillStyle = isToday
+    ctx.fillStyle = (isToday || cellOver)
       ? (h > 0 ? "#fff" : hexToRgba(teal, 0.88))
       : h > 0
         ? (intensity > 0.55 ? "rgba(255,255,255,0.92)" : hexToRgba(ink, 0.84))
@@ -1818,6 +1908,15 @@ function renderMonthChart() {
           ? hexToRgba(muted, 0.38)
           : hexToRgba(muted, 0.74);
     if (cw >= 18 && ch >= 16) ctx.fillText(String(d), cx2 + cw / 2, cy2 + ch / 2);
+
+    // ── Gold star in top-right corner for over-goal days ──
+    if (cellOver && cw >= 20 && ch >= 18) {
+      const starFz = Math.max(6, Math.round(Math.min(cw, ch) * 0.28));
+      ctx.font = `${starFz}px sans-serif`;
+      ctx.textAlign = "right"; ctx.textBaseline = "top";
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.fillText("★", cx2 + cw - 2, cy2 + 2);
+    }
     ctx.textBaseline = "alphabetic";
   }
 }
@@ -1903,10 +2002,18 @@ function initMonthChart() {
     tip.hidden = false;
     document.getElementById("ctDate").textContent =
       date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
-    document.getElementById("ctVal").textContent = h > 0 ? formatTime(h * 3600000) : "No data";
+    const tipGoal = state.goal > 0 ? state.goal : 8;
+    const tipOver = h > tipGoal;
+    // Keep tooltip value short — just the time, star prefix for over-goal days
+    document.getElementById("ctVal").textContent = h > 0
+      ? (tipOver ? `★ ${formatTime(h * 3600000)}` : formatTime(h * 3600000))
+      : "—";
 
-    // Position above the cell centre
-    tip.style.left = `${GX + col * (cw + GAP) + cw / 2}px`;
+    // Position above the cell centre, clamped so tooltip never overflows the canvas
+    const TOOLTIP_HALF = 60; // half of max-width (120px)
+    const rawLeft = GX + col * (cw + GAP) + cw / 2;
+    const clampedLeft = Math.max(TOOLTIP_HALF, Math.min(W - TOOLTIP_HALF, rawLeft));
+    tip.style.left = `${clampedLeft}px`;
     tip.style.top  = `${HDR + row * (ch + GAP)}px`;
     renderMonthChart();
   }, { passive: true });
@@ -2144,7 +2251,7 @@ function closeClearModal() {
 
 function doClearToday() {
   const key = getLocalDateKey(new Date()), r = state.data.running;
-  state.data.days[key] = 0; state.goalCelebrated = false;
+  state.data.days[key] = 0; localStorage.removeItem(GOAL_CELEBRATED_KEY);
   if (state.data.labels) delete state.data.labels[key];
   if (r.isRunning && r.lastDateKey === key) r.activeStart = new Date().toISOString();
   saveData(); refreshAll();
